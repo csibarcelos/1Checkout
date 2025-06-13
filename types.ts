@@ -345,7 +345,7 @@ export interface PushInPayPixResponseData {
   id: string;
   qr_code: string;
   qr_code_base64: string;
-  status: PaymentStatus;
+  status: string; // Corrected: Was PaymentStatus, API returns string
   value: number; 
 }
 export interface PushInPayPixResponse {
@@ -356,7 +356,7 @@ export interface PushInPayPixResponse {
 
 export interface PushInPayTransactionStatusData {
     id: string;
-    status: PaymentStatus;
+    status: string; // Corrected: Was PaymentStatus, API returns string
     value: number;
     paid_at?: string;
 }

@@ -77,6 +77,7 @@ export const productService = {
   },
 
   getProductById: async (id: string, _token: string | null): Promise<Product | undefined> => {
+    const logPrefix = `[productService.getProductById(${id.substring(0,8)})]`;
     try {
       const { data, error } = await supabase
         .from('products')
@@ -85,36 +86,55 @@ export const productService = {
         .single<ProductRow>();
 
       if (error) {
-        if (error.code === 'PGRST116') return undefined; 
+        console.error(`${logPrefix} Supabase error:`, error);
+        if (error.code === 'PGRST116') { // No rows found
+            console.warn(`${logPrefix} Product not found (PGRST116).`);
+            return undefined; 
+        }
         throw error;
       }
-      return data ? fromSupabaseRow(data) : undefined;
+      if (!data) {
+        console.warn(`${logPrefix} Product data is null but no error reported.`);
+        return undefined;
+      }
+      console.log(`${logPrefix} Product data fetched successfully.`);
+      return fromSupabaseRow(data);
     } catch (error: any) {
-      console.error('Supabase getProductById error:', error);
+      console.error(`${logPrefix} General exception:`, error);
       throw new Error(error.message || 'Falha ao buscar produto');
     }
   },
 
   getProductBySlug: async (slug: string, _token: string | null): Promise<Product | undefined> => {
+    const logPrefix = `[productService.getProductBySlug(${slug})]`;
+    const currentUserId = await getSupabaseUserId(); // Log current auth state for context
+    console.log(`${logPrefix} Attempting to fetch. Current auth user ID (for context): ${currentUserId || 'Anonymous'}`);
+
     try {
-      const { data, error } = await supabase
+      const { data, error, status } = await supabase
         .from('products')
         .select('id, platform_user_id, slug, name, description, price_in_cents, image_url, checkout_customization, delivery_url, total_sales, clicks, checkout_views, conversion_rate, abandonment_rate, order_bump, upsell, coupons, created_at, updated_at')
         .eq('slug', slug)
-        .single<ProductRow>();
+        .single<ProductRow>(); // .single() will error if more than one row, or if RLS prevents access to THE row.
 
       if (error) {
-        if (error.code === 'PGRST116') return undefined;
-        // O erro '42P17' (infinite recursion) será lançado aqui
-        console.error('Supabase getProductBySlug error:', error); // Log detalhado
-        throw error; // Re-lança o erro para ser pego pelo chamador
+        console.error(`${logPrefix} Supabase error (Status: ${status}, Code: ${error.code}):`, error.message, error.details, error.hint);
+        if (error.code === 'PGRST116') { // 0 rows found or RLS prevented access to the specific row
+          console.warn(`${logPrefix} Product not found or access denied by RLS (PGRST116). This is expected for anonymous users if RLS is restrictive or slug is wrong.`);
+          return undefined;
+        }
+        throw error;
       }
-      return data ? fromSupabaseRow(data) : undefined;
+      
+      if (!data) { // Should be caught by PGRST116, but as a safeguard.
+        console.warn(`${logPrefix} Product data is null/undefined but no specific Supabase error reported (Status: ${status}). This might indicate an RLS issue silently preventing row access.`);
+        return undefined;
+      }
+      
+      console.log(`${logPrefix} Product data fetched successfully for slug. Product ID: ${data.id}`);
+      return fromSupabaseRow(data);
     } catch (error: any) {
-      // Se o erro já foi logado, apenas re-lança. Caso contrário, loga.
-      if (error.code !== '42P17') { // Não loga novamente se já foi logado acima.
-        console.error('Supabase getProductBySlug error:', error);
-      }
+      console.error(`${logPrefix} General exception:`, error.message, error.stack);
       throw new Error(error.message || 'Falha ao buscar produto pelo slug');
     }
   },

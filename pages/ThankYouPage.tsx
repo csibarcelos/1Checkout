@@ -8,7 +8,7 @@ import { salesService } from '../services/salesService';
 import { productService } from '../services/productService';
 import { Sale, SaleProductItem, Product, UpsellOffer, PaymentStatus, PushInPayPixRequest, PushInPayPixResponseData, PushInPayPixResponse } from '../types';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { CheckCircleIcon, DocumentDuplicateIcon, MOCK_WEBHOOK_URL } from '@/constants.tsx'; 
+import { CheckCircleIcon, DocumentDuplicateIcon, MOCK_WEBHOOK_URL } from '../constants.tsx'; 
 import { supabase } from '../supabaseClient'; 
 import { Input } from '../components/ui/Input'; 
 

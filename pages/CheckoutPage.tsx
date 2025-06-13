@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { CheckCircleIcon, PHONE_COUNTRY_CODES, DocumentDuplicateIcon, TagIcon, MOCK_WEBHOOK_URL, PLATFORM_NAME } from '@/constants.tsx'; 
+import { CheckCircleIcon, PHONE_COUNTRY_CODES, DocumentDuplicateIcon, TagIcon, MOCK_WEBHOOK_URL, PLATFORM_NAME } from '../constants.tsx'; 
 import { settingsService } from '../services/settingsService';
 import { salesService } from '../services/salesService';
 import { utmifyService } from '../services/utmifyService';
@@ -226,7 +226,7 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
                   <h3 className="text-xl font-semibold" style={{color: primaryColor}}>Pague com PIX para finalizar!</h3>
                   {paymentStatus === PaymentStatus.WAITING_PAYMENT && (
                     <>
-                      <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="PIX QR Code" className="mx-auto w-56 h-56 rounded-md border-2 p-1 bg-white" style={{borderColor: primaryColor}} />
+                      <img src={pixData.qr_code_base64} alt="PIX QR Code" className="mx-auto w-56 h-56 rounded-md border-2 p-1 bg-white" style={{borderColor: primaryColor}} />
                       <div className="relative">
                         <Input name="pixCode" readOnly value={pixData.qr_code} className="pr-10 text-xs text-center inputLightStyle"/>
                         <Button type="button" onClick={copyPixCode} variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-neutral-500 hover:text-primary">
@@ -245,9 +245,9 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
                       <p className="text-sm text-neutral-600">Você será redirecionado em instantes...</p>
                     </div>
                   )}
-                   {paymentStatus === PaymentStatus.FAILED && !isPollingPayment && (
+                   {(paymentStatus === PaymentStatus.FAILED || paymentStatus === PaymentStatus.EXPIRED || paymentStatus === PaymentStatus.CANCELLED) && !isPollingPayment && (
                      <div className="mt-6 text-center">
-                       <p className="text-red-500 mb-2">Ocorreu uma falha ao processar seu pagamento PIX.</p>
+                       <p className="text-red-500 mb-2">{error || `O pagamento PIX ${paymentStatus === PaymentStatus.EXPIRED ? 'expirou' : 'falhou/foi cancelado'}.`}</p>
                        <Button
                          onClick={() => { setPixData(null); setPaymentStatus(null); setGeneralError(null); handlePayWithPix(); }}
                          isLoading={isSubmitting}
@@ -628,6 +628,35 @@ export const CheckoutPage: React.FC = () => {
     };
   }, [customerName, customerEmail, rawWhatsappNumber, product, pixData, paymentStatus, scheduleAbandonedCart]);
 
+  const mapApiStatusToUiStatus = useCallback((apiStatus?: string): PaymentStatus => {
+    if (!apiStatus) {
+        console.warn(`API status is undefined. Defaulting to FAILED.`);
+        return PaymentStatus.FAILED;
+    }
+    const lowerStatus = apiStatus.toLowerCase();
+    switch (lowerStatus) {
+        case "created":
+        case "waiting_payment":
+        case "pending":
+            return PaymentStatus.WAITING_PAYMENT;
+        case "paid":
+        case "approved":
+        case "confirmed":
+            return PaymentStatus.PAID;
+        case "cancelled":
+        case "refused":
+            return PaymentStatus.CANCELLED;
+        case "expired":
+            return PaymentStatus.EXPIRED;
+        case "failed":
+        case "error":
+            return PaymentStatus.FAILED;
+        default:
+            console.warn(`Unknown API status from PushInPay: '${apiStatus}'. Defaulting to FAILED.`);
+            return PaymentStatus.FAILED;
+    }
+  }, []);
+
 
   const handlePayWithPix = async () => {
     setError(null);
@@ -651,7 +680,7 @@ export const CheckoutPage: React.FC = () => {
     try {
         const pixPayload: PushInPayPixRequest = {
             value: finalPrice,
-            originalValueBeforeDiscount: originalPriceBeforeDiscount ?? finalPrice, // Usar valor final se originalPriceBeforeDiscount for null
+            originalValueBeforeDiscount: originalPriceBeforeDiscount ?? finalPrice, 
             webhook_url: MOCK_WEBHOOK_URL, 
             customerName: customerName,
             customerEmail: customerEmail,
@@ -694,7 +723,9 @@ export const CheckoutPage: React.FC = () => {
 
         if (pixFunctionResponse && pixFunctionResponse.success && pixFunctionResponse.data) {
             setPixData(pixFunctionResponse.data);
-            setPaymentStatus(pixFunctionResponse.data.status);
+            const initialApiStatus = pixFunctionResponse.data.status; // This is string
+            const initialUiStatus = mapApiStatusToUiStatus(initialApiStatus); // This is PaymentStatus
+            setPaymentStatus(initialUiStatus);
             startPollingPaymentStatus(pixFunctionResponse.data.id, product.platformUserId);
         } else {
             throw new Error(pixFunctionResponse?.message || "A resposta da função não continha os dados do PIX esperados.");
@@ -744,10 +775,11 @@ export const CheckoutPage: React.FC = () => {
         }
 
         if (statusFunctionResponse && statusFunctionResponse.success && statusFunctionResponse.data) {
-            const currentStatus = statusFunctionResponse.data.status;
-            setPaymentStatus(currentStatus);
+            const currentApiStatus = statusFunctionResponse.data.status; // This is string
+            const statusForUi = mapApiStatusToUiStatus(currentApiStatus); // This is PaymentStatus
+            setPaymentStatus(statusForUi);
 
-            if (currentStatus === PaymentStatus.PAID) {
+            if (statusForUi === PaymentStatus.PAID) {
                 if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
                 if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
                 setIsPollingPayment(false);
@@ -798,12 +830,17 @@ export const CheckoutPage: React.FC = () => {
                 localStorage.removeItem(LOCALSTORAGE_CHECKOUT_KEY);
                 navigate(`/thank-you/${transactionId}?origProdId=${product.id}`);
 
-            } else if (currentStatus === PaymentStatus.EXPIRED || currentStatus === PaymentStatus.CANCELLED || currentStatus === PaymentStatus.FAILED) {
+            } else if (
+                statusForUi === PaymentStatus.EXPIRED ||
+                statusForUi === PaymentStatus.CANCELLED ||
+                statusForUi === PaymentStatus.FAILED
+            ) {
                 if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
                 if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
                 setIsPollingPayment(false);
-                setError(`O pagamento PIX ${currentStatus === PaymentStatus.EXPIRED ? 'expirou' : 'falhou'}. Por favor, tente novamente.`);
+                setError(`O pagamento PIX ${statusForUi === PaymentStatus.EXPIRED ? 'expirou' : 'falhou/foi cancelado'}. Por favor, tente novamente.`);
             }
+            // Se for WAITING_PAYMENT, o polling continua
         } else {
              console.warn("Polling: Resposta da função 'verificar-status-pix' não foi bem-sucedida ou não continha dados.");
              setError(statusFunctionResponse?.message || "Resposta inválida ao verificar status do PIX.");
@@ -834,6 +871,9 @@ export const CheckoutPage: React.FC = () => {
       navigator.clipboard.writeText(pixData.qr_code).then(() => {
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
+      }).catch(err => {
+        console.error('Falha ao copiar código PIX:', err);
+        alert('Não foi possível copiar o código PIX. Por favor, copie manualmente.');
       });
     }
   };

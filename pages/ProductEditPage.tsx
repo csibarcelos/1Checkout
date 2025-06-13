@@ -8,7 +8,7 @@ import { Input, Textarea } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 // Removed Modal import
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { COLOR_PALETTE_OPTIONS, TrashIcon, PlusIcon } from '@/constants.tsx'; 
+import { COLOR_PALETTE_OPTIONS, TrashIcon, PlusIcon } from '../constants.tsx'; 
 import { useAuth } from '../contexts/AuthContext';
 import { MiniEditor } from '../components/shared/MiniEditor'; 
 import { CouponFormModal } from '../components/shared/CouponFormModal'; 

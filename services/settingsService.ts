@@ -1,7 +1,8 @@
+
 import { AppSettings, PlatformSettings, PixelIntegration } from '../types';
 import { supabase, getSupabaseUserId } from '../supabaseClient'; // Updated import
 import { Database, Json } from '../types/supabase';
-import { COLOR_PALETTE_OPTIONS } from '@/constants.tsx';
+import { COLOR_PALETTE_OPTIONS } from '../constants.tsx';
 
 type AppSettingsRow = Database['public']['Tables']['app_settings']['Row'];
 type AppSettingsInsert = Database['public']['Tables']['app_settings']['Insert']; // Use Insert type for upsert payload
@@ -102,39 +103,58 @@ const fromSupabasePlatformSettingsRow = (row: PlatformSettingsRow | null): Platf
 export const settingsService = {
   getAppSettings: async (_token?: string | null): Promise<AppSettings> => {
     const userId = await getSupabaseUserId();
+    const logPrefix = `[settingsService.getAppSettings(user: ${userId?.substring(0,8) || 'current'})]`;
     if (!userId) {
-        console.warn('getAppSettings: User not authenticated. Returning default settings.');
+        console.warn(`${logPrefix} User not authenticated. Returning default settings.`);
         return fromSupabaseAppSettingsRow(null);
     }
     try {
-      const { data, error } = await supabase.from('app_settings').select('*').eq('platform_user_id', userId).single(); 
+      const { data, error, status } = await supabase.from('app_settings').select('*').eq('platform_user_id', userId).single(); 
       if (error && error.code !== 'PGRST116') { 
-        console.error('Supabase getAppSettings error:', error.message, `Details: ${error.details}`, `Hint: ${error.hint}`, `Code: ${error.code}`); 
+        console.error(`${logPrefix} Supabase error (Status: ${status}, Code: ${error.code}):`, error.message, error.details, error.hint); 
         throw new Error(error.message || 'Falha ao buscar configurações do usuário');
       }
+      if (!data && error?.code === 'PGRST116') {
+        console.warn(`${logPrefix} No settings found for user (PGRST116). Returning default settings.`);
+        return fromSupabaseAppSettingsRow(null);
+      }
+      if (!data && !error) {
+        console.warn(`${logPrefix} Settings data is null/undefined but no Supabase error reported (Status: ${status}). Returning default settings.`);
+        return fromSupabaseAppSettingsRow(null);
+      }
+      console.log(`${logPrefix} Settings fetched successfully.`);
       return fromSupabaseAppSettingsRow(data as AppSettingsRow | null);
     } catch (error: any) { 
-      console.error('Exception in getAppSettings:', error); 
+      console.error(`${logPrefix} General exception:`, error); 
       throw new Error(error.message || 'Falha geral ao buscar configurações do usuário'); 
     }
   },
 
   getAppSettingsByUserId: async (targetUserId: string, _token?: string | null): Promise<AppSettings> => {
+    const logPrefix = `[settingsService.getAppSettingsByUserId(targetUser: ${targetUserId.substring(0,8)})]`;
+    const currentAuthUserId = await getSupabaseUserId(); // For context
+    console.log(`${logPrefix} Attempting to fetch. Current auth user ID (for context): ${currentAuthUserId || 'Anonymous'}`);
+
     try {
-      const { data, error } = await supabase 
+      const { data, error, status } = await supabase 
         .from('app_settings')
         .select('*')
         .eq('platform_user_id', targetUserId)
         .limit(1); 
 
       if (error) {
-        console.error(`Supabase getAppSettingsByUserId (target: ${targetUserId}) error:`, error.message, `Details: ${error.details}`, `Hint: ${error.hint}`, `Code: ${error.code}`);
+        console.error(`${logPrefix} Supabase error (Status: ${status}, Code: ${error.code}):`, error.message, error.details, error.hint);
         throw new Error(error.message || `Falha ao buscar configurações para o usuário ${targetUserId}`);
       }
       const rowData = data && data.length > 0 ? data[0] : null;
+      if (!rowData) {
+        console.warn(`${logPrefix} No settings found for target user ${targetUserId} (Status: ${status}). This might be due to RLS or no settings existing. Returning default settings.`);
+        return fromSupabaseAppSettingsRow(null);
+      }
+      console.log(`${logPrefix} Settings fetched successfully for target user.`);
       return fromSupabaseAppSettingsRow(rowData as AppSettingsRow | null);
     } catch (error: any) {
-      console.error(`Exception in getAppSettingsByUserId (target: ${targetUserId}):`, error);
+      console.error(`${logPrefix} General exception:`, error);
       throw new Error(error.message || `Falha geral ao buscar configurações para o usuário ${targetUserId}`);
     }
   },

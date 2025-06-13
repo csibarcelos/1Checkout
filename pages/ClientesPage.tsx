@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -7,7 +8,7 @@ import { Modal } from '../components/ui/Modal';
 import { Customer, FunnelStage, Product as ProductType } from '../types';
 import { customerService } from '../services/customerService';
 import { productService } from '../services/productService'; 
-import { UsersIcon, WhatsAppIcon, generateWhatsAppLink } from '@/constants.tsx';
+import { UsersIcon, WhatsAppIcon, generateWhatsAppLink } from '../constants.tsx';
 import { useAuth } from '../contexts/AuthContext'; 
 
 
@@ -130,7 +131,9 @@ export const ClientesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-neutral-100">Meus Clientes</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <h1 className="text-3xl font-bold text-neutral-100">Meus Clientes ({filteredCustomers.length})</h1>
+      </div>
       
       <Card className="p-0 sm:p-0 border-neutral-700">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 border-b border-neutral-700">
@@ -148,7 +151,7 @@ export const ClientesPage: React.FC = () => {
               onChange={(e) => setFilterFunnelStage(e.target.value as FunnelStage | '')}
               className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-neutral-600 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md bg-neutral-700 text-neutral-200"
             >
-              <option value="">Todas</option>
+              <option value="">Todas Etapas</option>
               {Object.values(FunnelStage).map(stage => (
                 <option key={stage} value={stage}>{getFunnelStageLabel(stage)}</option>
               ))}
@@ -186,16 +189,16 @@ export const ClientesPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-100">{customer.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">{customer.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
-                  {customer.whatsapp ? (
-                    <a
-                      href={generateWhatsAppLink(customer.whatsapp, `Olá ${customer.name || 'Cliente'}, ...`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-green-400 hover:text-green-300"
-                    >
-                      <WhatsAppIcon className="h-4 w-4 mr-1" /> {customer.whatsapp}
-                    </a>
-                  ) : 'N/A'}
+                    {customer.whatsapp ? (
+                      <a
+                        href={generateWhatsAppLink(customer.whatsapp, `Olá ${customer.name}, ...`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-green-400 hover:text-green-300"
+                      >
+                        <WhatsAppIcon className="h-4 w-4 mr-1" /> {customer.whatsapp}
+                      </a>
+                    ) : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">{formatCurrency(customer.totalSpentInCents)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -203,9 +206,11 @@ export const ClientesPage: React.FC = () => {
                       {getFunnelStageLabel(customer.funnelStage)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-400">{customer.lastPurchaseDate ? new Date(customer.lastPurchaseDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-400">{new Date(customer.lastPurchaseDate).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenDetailsModal(customer)} className="text-neutral-300 hover:text-primary">Ver Detalhes</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenDetailsModal(customer)} className="text-neutral-300 hover:text-primary">
+                      Detalhes
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -220,51 +225,54 @@ export const ClientesPage: React.FC = () => {
           isOpen={isDetailsModalOpen} 
           onClose={handleCloseDetailsModal} 
           title={`Detalhes do Cliente: ${selectedCustomer.name}`}
-          size="xl"
+          size="lg"
         >
-          <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-2 text-sm">
-             <section>
-                <h3 className="text-lg font-semibold text-neutral-100 border-b border-neutral-600 pb-2 mb-3">Informações de Contato</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                  <InfoItem label="Nome" value={selectedCustomer.name} />
-                  <InfoItem label="Email" value={selectedCustomer.email} />
-                  <InfoItem 
-                    label="WhatsApp" 
-                    value={selectedCustomer.whatsapp} 
-                    isWhatsApp={!!selectedCustomer.whatsapp}
-                    whatsAppUrl={selectedCustomer.whatsapp ? generateWhatsAppLink(selectedCustomer.whatsapp, `Olá ${selectedCustomer.name || 'Cliente'}, ...`) : undefined}
-                  />
-                  <InfoItem label="ID Cliente" value={selectedCustomer.id} />
-                </div>
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 text-sm">
+            <section>
+              <h3 className="text-md font-semibold text-neutral-100 border-b border-neutral-600 pb-1 mb-2">Informações Pessoais</h3>
+              <InfoItem label="ID Cliente" value={selectedCustomer.id} />
+              <InfoItem label="Nome" value={selectedCustomer.name} />
+              <InfoItem label="Email" value={selectedCustomer.email} />
+              <InfoItem 
+                label="WhatsApp" 
+                value={selectedCustomer.whatsapp} 
+                isWhatsApp={!!selectedCustomer.whatsapp}
+                whatsAppUrl={selectedCustomer.whatsapp ? generateWhatsAppLink(selectedCustomer.whatsapp, `Olá ${selectedCustomer.name}, ...`) : undefined}
+              />
             </section>
             <section>
-                <h3 className="text-lg font-semibold text-neutral-100 border-b border-neutral-600 pb-2 mb-3">Histórico de Compras</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                    <InfoItem label="Total Gasto" value={<span className="font-bold text-primary">{formatCurrency(selectedCustomer.totalSpentInCents)}</span>} />
-                    <InfoItem label="Total de Pedidos" value={selectedCustomer.totalOrders} />
-                    <InfoItem label="Data da Primeira Compra" value={selectedCustomer.firstPurchaseDate ? new Date(selectedCustomer.firstPurchaseDate).toLocaleDateString() : 'N/A'} />
-                    <InfoItem label="Data da Última Compra" value={selectedCustomer.lastPurchaseDate ? new Date(selectedCustomer.lastPurchaseDate).toLocaleDateString() : 'N/A'} />
-                </div>
+              <h3 className="text-md font-semibold text-neutral-100 border-b border-neutral-600 pb-1 mb-2">Histórico de Compras</h3>
+              <InfoItem label="Total Gasto" value={<span className="font-bold text-primary">{formatCurrency(selectedCustomer.totalSpentInCents)}</span>} />
+              <InfoItem label="Total de Pedidos" value={selectedCustomer.totalOrders} />
+              <InfoItem label="Primeira Compra" value={new Date(selectedCustomer.firstPurchaseDate).toLocaleDateString()} />
+              <InfoItem label="Última Compra" value={new Date(selectedCustomer.lastPurchaseDate).toLocaleDateString()} />
+              <InfoItem label="Etapa do Funil" value={<span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getFunnelStageClass(selectedCustomer.funnelStage)}`}>{getFunnelStageLabel(selectedCustomer.funnelStage)}</span>} />
             </section>
             <section>
-                <h3 className="text-lg font-semibold text-neutral-100 border-b border-neutral-600 pb-2 mb-3">Engajamento</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                    <InfoItem label="Etapa do Funil" value={<span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getFunnelStageClass(selectedCustomer.funnelStage)}`}>{getFunnelStageLabel(selectedCustomer.funnelStage)}</span>} />
-                </div>
+              <h3 className="text-md font-semibold text-neutral-100 border-b border-neutral-600 pb-1 mb-2">Produtos Comprados</h3>
+              {selectedCustomer.productsPurchased.length > 0 ? (
+                <ul className="list-disc list-inside space-y-1">
+                  {selectedCustomer.productsPurchased.map(productId => {
+                    const productDetails = allProducts.find(p => p.id === productId);
+                    return <li key={productId} className="text-neutral-300">{productDetails ? productDetails.name : `ID Produto: ${productId}`}</li>;
+                  })}
+                </ul>
+              ) : (
+                <p className="text-neutral-400">Nenhum produto comprado encontrado.</p>
+              )}
             </section>
-             <section>
-                <h3 className="text-lg font-semibold text-neutral-100 border-b border-neutral-600 pb-2 mb-3">Produtos Comprados</h3>
-                {selectedCustomer.productsPurchased.length > 0 ? (
-                  <ul className="list-disc list-inside space-y-1 text-neutral-300">
-                    {selectedCustomer.productsPurchased.map(productId => {
-                      const productDetails = allProducts.find(p => p.id === productId);
-                      return <li key={productId}>{productDetails ? productDetails.name : `ID: ${productId}`}</li>;
-                    })}
-                  </ul>
-                ) : <p className="text-neutral-400">Nenhum produto comprado registrado.</p>}
-             </section>
+            <section>
+                <h3 className="text-md font-semibold text-neutral-100 border-b border-neutral-600 pb-1 mb-2">IDs das Vendas</h3>
+                {selectedCustomer.saleIds.length > 0 ? (
+                     <ul className="list-disc list-inside space-y-1 text-xs text-neutral-400">
+                        {selectedCustomer.saleIds.map(saleId => <li key={saleId}>{saleId}</li>)}
+                     </ul>
+                ) : (
+                    <p className="text-neutral-400">Nenhum ID de venda associado.</p>
+                )}
+            </section>
           </div>
-          <div className="mt-8 flex justify-end">
+          <div className="mt-6 flex justify-end">
             <Button variant="outline" onClick={handleCloseDetailsModal}>Fechar</Button>
           </div>
         </Modal>
