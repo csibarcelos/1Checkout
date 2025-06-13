@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { Product, PaymentStatus, Coupon, OrderBumpOffer, PushInPayPixResponseData, PushInPayPixResponse, AppSettings, PlatformSettings, SaleProductItem, PaymentMethod, Sale, UtmifyOrderPayload, AbandonedCartStatus, PushInPayPixRequest } from '../types'; 
+import { Product, PaymentStatus, Coupon, OrderBumpOffer, PushInPayPixResponseData, PushInPayPixResponse, AppSettings, PlatformSettings, SaleProductItem, PaymentMethod, Sale, UtmifyOrderPayload, AbandonedCartStatus, PushInPayPixRequest, PushInPayTransactionStatusResponse } from '../types'; 
 import { productService } from '../services/productService';
 import { abandonedCartService, CreateAbandonedCartPayload } from '../services/abandonedCartService';
 import { Button } from '../components/ui/Button';
@@ -9,13 +9,11 @@ import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { CheckCircleIcon, PHONE_COUNTRY_CODES, DocumentDuplicateIcon, TagIcon, MOCK_WEBHOOK_URL, PLATFORM_NAME } from '@/constants.tsx'; 
-// import { pushinPayService } from '../services/pushinPayService'; // Removido
 import { settingsService } from '../services/settingsService';
 import { salesService } from '../services/salesService';
 import { utmifyService } from '../services/utmifyService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient'; 
-// import { worldTimeApiService } from '../services/worldTimeApiService'; // Chamada removida
 
 
 const LockClosedIconSolid: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -400,11 +398,11 @@ export const CheckoutPage: React.FC = () => {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isPollingPayment, setIsPollingPayment] = useState(false);
-  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingTimeoutRef = useRef<number | null>(null); // Changed to number for window.setTimeout
+  const pollingIntervalRef = useRef<number | null>(null); // Changed to number for window.setInterval
   
   const [abandonedCartId, setAbandonedCartId] = useState<string | null>(null);
-  const abandonedCartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abandonedCartTimeoutRef = useRef<number | null>(null); // Changed to number for window.setTimeout
 
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [currentProductsForSale, setCurrentProductsForSale] = useState<SaleProductItem[]>([]);
@@ -513,7 +511,7 @@ export const CheckoutPage: React.FC = () => {
       localStorage.setItem(storageKey, endTime.toString());
     }
 
-    const intervalId = setInterval(() => {
+    const intervalId = window.setInterval(() => { // Use window.setInterval
       const now = Date.now();
       const distance = endTime! - now;
 
@@ -568,6 +566,8 @@ export const CheckoutPage: React.FC = () => {
             priceInCents: product.orderBump.customPriceInCents, 
             originalPriceInCents: product.orderBump.customPriceInCents, 
             isOrderBump: true,
+            slug: undefined, // Order bump usually doesn't have its own slug for this context
+            deliveryUrl: undefined // Order bump delivery might be handled differently
         });
       }
       setOriginalPriceBeforeDiscount(initialTotalForOriginalPrice);
@@ -609,8 +609,8 @@ export const CheckoutPage: React.FC = () => {
 
   // Abandoned Cart Logic
   const scheduleAbandonedCart = useCallback(() => {
-    if (abandonedCartTimeoutRef.current) clearTimeout(abandonedCartTimeoutRef.current);
-    abandonedCartTimeoutRef.current = setTimeout(async () => {
+    if (abandonedCartTimeoutRef.current) window.clearTimeout(abandonedCartTimeoutRef.current); // Use window.clearTimeout
+    abandonedCartTimeoutRef.current = window.setTimeout(async () => { // Use window.setTimeout
       if (!product || !product.id || !customerEmail || paymentStatus === PaymentStatus.PAID || !finalPrice) return;
       
       const payload: CreateAbandonedCartPayload = {
@@ -630,8 +630,10 @@ export const CheckoutPage: React.FC = () => {
             setAbandonedCartId(newCart.id);
             console.log("Abandoned cart created:", newCart.id);
         } else { 
-            await abandonedCartService.updateAbandonedCartAttempt(abandonedCartId, payload);
-            console.log("Abandoned cart updated:", abandonedCartId);
+            // await abandonedCartService.updateAbandonedCartAttempt(abandonedCartId, payload); // Update removed, new log on each schedule
+            const updatedCart = await abandonedCartService.createAbandonedCartAttempt(payload); // Log new attempt instead of update
+            setAbandonedCartId(updatedCart.id);
+            console.log("New abandoned cart attempt logged:", updatedCart.id);
         }
       } catch (abandonedError) {
         console.error("Failed to log abandoned cart:", abandonedError);
@@ -644,7 +646,7 @@ export const CheckoutPage: React.FC = () => {
       scheduleAbandonedCart();
     }
     return () => {
-      if (abandonedCartTimeoutRef.current) clearTimeout(abandonedCartTimeoutRef.current);
+      if (abandonedCartTimeoutRef.current) window.clearTimeout(abandonedCartTimeoutRef.current); // Use window.clearTimeout
     };
   }, [customerName, customerEmail, rawWhatsappNumber, product, pixData, paymentStatus, scheduleAbandonedCart]);
 
@@ -669,11 +671,10 @@ export const CheckoutPage: React.FC = () => {
     setPixData(null);
     
     try {
-        // 1. O payload com os dados do pedido continua o mesmo
-        const pixPayload = {
+        const pixPayload: PushInPayPixRequest = { // Added type for clarity
             value: finalPrice,
-            originalValueBeforeDiscount: originalPriceBeforeDiscount,
-            webhook_url: MOCK_WEBHOOK_URL, // Este é um mock, lembre-se de configurar um real no futuro
+            originalValueBeforeDiscount: originalPriceBeforeDiscount ?? finalPrice,
+            webhook_url: MOCK_WEBHOOK_URL, 
             customerName: customerName,
             customerEmail: customerEmail,
             customerWhatsapp: `${customerWhatsappCountryCode}${rawWhatsappNumber.replace(/\D/g, '')}`,
@@ -683,66 +684,54 @@ export const CheckoutPage: React.FC = () => {
             discountAppliedInCents: discountApplied
         };
         
-        // 2. A CHAMADA REAL E DIRETA PARA A EDGE FUNCTION
-        // Usamos o 'supabase.functions.invoke' para chamar nosso backend de forma segura
+        console.log("CheckoutPage: Invocando 'gerar-pix' com payload:", pixPayload, "para productOwnerUserId:", product.platformUserId);
         const { data: pixFunctionResponse, error: functionError } = await supabase.functions.invoke<PushInPayPixResponse>('gerar-pix', {
             body: {
                 payload: pixPayload,
                 productOwnerUserId: product.platformUserId
             }
         });
+        console.log("CheckoutPage: Response from 'gerar-pix' Edge Function:", pixFunctionResponse);
+        console.error("CheckoutPage: Error from 'gerar-pix' Edge Function (if any):", functionError);
 
-        // 3. Tratamento de erros que podem vir da Edge Function
+
         if (functionError) {
-            // Tentar extrair uma mensagem mais amigável do erro, se disponível
             let errorMessage = "Falha ao gerar PIX junto ao provedor.";
-            if (typeof functionError.message === 'string') {
-                try {
-                    const parsedMessage = JSON.parse(functionError.message);
-                    if (parsedMessage && parsedMessage.error && typeof parsedMessage.error === 'string') {
-                        errorMessage = parsedMessage.error;
-                    } else if (parsedMessage && parsedMessage.message && typeof parsedMessage.message === 'string') {
-                        errorMessage = parsedMessage.message;
-                    } else {
-                        errorMessage = functionError.message;
-                    }
-                } catch (e) {
-                    // Se não for JSON, usa a mensagem original
+            if (functionError.message) {
+                 try {
+                    const parsedContext = JSON.parse(functionError.context || "{}");
+                    errorMessage = parsedContext.message || functionError.message;
+                 } catch (e) {
                     errorMessage = functionError.message;
-                }
+                 }
             }
             throw new Error(errorMessage);
         }
 
-        // 4. Tratamento da resposta de sucesso da Edge Function
         if (pixFunctionResponse && pixFunctionResponse.success && pixFunctionResponse.data) {
             setPixData(pixFunctionResponse.data);
             setPaymentStatus(pixFunctionResponse.data.status);
-            // A lógica de polling começará quando pixData for definido
-             startPollingPaymentStatus(pixFunctionResponse.data.id, product.platformUserId);
+            startPollingPaymentStatus(pixFunctionResponse.data.id, product.platformUserId);
         } else {
-            // Lança um erro se a resposta da função, mesmo com sucesso, não tiver os dados esperados
-            throw new Error(pixFunctionResponse?.message || "A resposta da função não continha os dados do PIX.");
+            throw new Error(pixFunctionResponse?.message || "A resposta da função não continha os dados do PIX esperados.");
         }
 
     } catch (paymentError: any) {
-        console.error("PIX Payment Error:", paymentError);
-        // Aqui, paymentError.message já deve ser a mensagem tratada do bloco 'if (functionError)'
-        // ou a mensagem de "A resposta da função não continha os dados do PIX."
+        console.error("PIX Payment Error (handlePayWithPix catch block):", paymentError);
         setError(paymentError.message || "Ocorreu um erro desconhecido ao gerar o PIX. Tente novamente.");
     } finally {
-      setIsSubmitting(false); // Garante que o botão seja reabilitado
+      setIsSubmitting(false); 
     }
   };
 
 
   const startPollingPaymentStatus = (transactionId: string, productOwnerId: string) => {
-    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-    if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+    if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current); // Use window.clearInterval
+    if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current); // Use window.clearTimeout
     setIsPollingPayment(true);
 
-    pollingTimeoutRef.current = setTimeout(() => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    pollingTimeoutRef.current = window.setTimeout(() => { // Use window.setTimeout
+      if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
       setIsPollingPayment(false);
       if (paymentStatus !== PaymentStatus.PAID) { 
         setError("Tempo limite para verificação de pagamento esgotado. Se você pagou, contate o suporte.");
@@ -750,93 +739,95 @@ export const CheckoutPage: React.FC = () => {
       }
     }, POLLING_TIMEOUT_DURATION);
 
-    pollingIntervalRef.current = setInterval(async () => {
+    pollingIntervalRef.current = window.setInterval(async () => { // Use window.setInterval
       try {
-        // A chamada para checkPaymentStatus também deve ser migrada para uma Edge Function no futuro.
-        // Por enquanto, se o pushInPayService foi removido, esta chamada falhará ou precisará ser adaptada.
-        // Para este escopo, vamos assumir que o polling continua usando o serviço simulado
-        // OU que esta lógica de polling também seria migrada para o backend ou removida/simplificada.
-        // Como pushInPayService foi removido, esta parte precisa ser reavaliada.
-        // Por ora, vou manter a estrutura mas ciente que a dependência foi removida.
-        // Idealmente, a Edge Function 'gerar-pix' poderia retornar um status inicial,
-        // e webhooks cuidariam da atualização final. O polling no frontend é um fallback.
+        console.log(`Polling status for transactionId: ${transactionId}`);
+        const { data: statusFunctionResponse, error: functionError } = await supabase.functions.invoke<PushInPayTransactionStatusResponse>('verificar-status-pix', {
+            body: { transactionId, productOwnerUserId: productOwnerId }
+        });
 
-        // SIMULAÇÃO DE POLLING:
-        // Para a UI progredir no fluxo de teste sem o pushInPayService.checkPaymentStatus real:
-        // Vamos simular que o pagamento é confirmado após alguns segundos se o pixData existir.
-        if (pixData && paymentStatus === PaymentStatus.WAITING_PAYMENT) {
-            console.log("Simulating payment confirmation after polling...");
-            setPaymentStatus(PaymentStatus.PAID); // Simula pagamento
+        console.log("Polling response from 'verificar-status-pix':", statusFunctionResponse);
+        console.error("Polling error from 'verificar-status-pix' (if any):", functionError);
+
+        if (functionError) {
+            console.error("Erro ao verificar status do PIX (polling):", functionError.message);
+            // Não para o polling por erro de rede, a menos que seja erro fatal da função
+            return;
         }
 
+        if (statusFunctionResponse && statusFunctionResponse.success && statusFunctionResponse.data) {
+            const currentStatus = statusFunctionResponse.data.status;
+            setPaymentStatus(currentStatus);
 
-        if (paymentStatus === PaymentStatus.PAID) { // Verifica se o status foi atualizado (pela simulação acima)
-            if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-            if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
-            setIsPollingPayment(false);
+            if (currentStatus === PaymentStatus.PAID) {
+                if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
+                if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
+                setIsPollingPayment(false);
 
-            if (!product || !platformSettings || currentProductsForSale.length === 0) {
-                console.error("Product, PlatformSettings, or currentProductsForSale not available when trying to finalize sale.");
-                setError("Erro ao finalizar a venda: dados do produto, configurações da plataforma ou itens da venda ausentes.");
-                return;
-            }
+                if (!product || !platformSettings || currentProductsForSale.length === 0) {
+                    console.error("Product, PlatformSettings, or currentProductsForSale not available when trying to finalize sale.");
+                    setError("Erro ao finalizar a venda: dados do produto, configurações da plataforma ou itens da venda ausentes.");
+                    return;
+                }
 
-            const saleRecordForCreation: Omit<Sale, 'id' | 'createdAt' | 'platformCommissionInCents' | 'commission'> = {
-                platformUserId: product.platformUserId,
-                pushInPayTransactionId: transactionId,
-                products: currentProductsForSale,
-                customer: { name: customerName, email: customerEmail, whatsapp: customerWhatsappCountryCode + rawWhatsappNumber.replace(/\D/g, '') },
-                paymentMethod: PaymentMethod.PIX,
-                status: PaymentStatus.PAID,
-                totalAmountInCents: finalPrice ?? 0,
-                originalAmountBeforeDiscountInCents: originalPriceBeforeDiscount ?? finalPrice ?? 0,
-                discountAppliedInCents: discountApplied,
-                couponCodeUsed: appliedCoupon?.code,
-                trackingParameters: Object.fromEntries(new URLSearchParams(location.search).entries()),
-                paidAt: new Date().toISOString(), // Usar data atual para simulação
-            };
-            
-            const createdSale = await salesService.createSale(saleRecordForCreation, platformSettings, null); 
-            
-            if(appSettings?.apiTokens?.utmifyEnabled && appSettings.apiTokens.utmify){
-                 const utmifyProducts = createdSale.products.map(p => ({
-                    id: p.productId, name: p.name, quantity: p.quantity, priceInCents: p.priceInCents,
-                    planId: null, planName: null, isUpsell: p.isOrderBump || p.isUpsell, slug: p.slug
-                }));
-                const utmifyPayload: UtmifyOrderPayload = {
-                    orderId: createdSale.id, platform: PLATFORM_NAME,
-                    paymentMethod: "pix", status: PaymentStatus.PAID, createdAt: createdSale.createdAt,
-                    customer: { name: createdSale.customer.name, email: createdSale.customer.email, whatsapp: createdSale.customer.whatsapp, ip: createdSale.customer.ip },
-                    products: utmifyProducts, trackingParameters: createdSale.trackingParameters,
-                    commission: createdSale.commission, approvedDate: createdSale.paidAt,
-                    couponCodeUsed: createdSale.couponCodeUsed, discountAppliedInCents: createdSale.discountAppliedInCents,
-                    originalAmountBeforeDiscountInCents: createdSale.originalAmountBeforeDiscountInCents,
+                const saleRecordForCreation: Omit<Sale, 'id' | 'createdAt' | 'platformCommissionInCents' | 'commission'> = {
+                    platformUserId: product.platformUserId,
+                    pushInPayTransactionId: transactionId,
+                    products: currentProductsForSale,
+                    customer: { name: customerName, email: customerEmail, whatsapp: customerWhatsappCountryCode + rawWhatsappNumber.replace(/\D/g, '') },
+                    paymentMethod: PaymentMethod.PIX,
+                    status: PaymentStatus.PAID,
+                    totalAmountInCents: finalPrice ?? 0,
+                    originalAmountBeforeDiscountInCents: originalPriceBeforeDiscount ?? finalPrice ?? 0,
+                    discountAppliedInCents: discountApplied,
+                    couponCodeUsed: appliedCoupon?.code,
+                    trackingParameters: Object.fromEntries(new URLSearchParams(location.search).entries()),
+                    paidAt: statusFunctionResponse.data.paid_at || new Date().toISOString(),
                 };
-                await utmifyService.sendOrderData(utmifyPayload, appSettings.apiTokens.utmify);
-            }
-            
-            if (abandonedCartId) {
-                await abandonedCartService.updateAbandonedCartStatus(abandonedCartId, AbandonedCartStatus.RECOVERED, null);
-            }
-            localStorage.removeItem(LOCALSTORAGE_CHECKOUT_KEY);
-            navigate(`/thank-you/${transactionId}?origProdId=${product.id}`);
+                
+                const createdSale = await salesService.createSale(saleRecordForCreation, platformSettings, null); 
+                
+                if(appSettings?.apiTokens?.utmifyEnabled && appSettings.apiTokens.utmify){
+                    const utmifyProducts = createdSale.products.map(p => ({
+                        id: p.productId, name: p.name, quantity: p.quantity, priceInCents: p.priceInCents,
+                        planId: null, planName: null, isUpsell: p.isOrderBump || p.isUpsell, slug: p.slug
+                    }));
+                    const utmifyPayload: UtmifyOrderPayload = {
+                        orderId: createdSale.id, platform: PLATFORM_NAME,
+                        paymentMethod: "pix", status: PaymentStatus.PAID, createdAt: createdSale.createdAt,
+                        customer: { name: createdSale.customer.name, email: createdSale.customer.email, whatsapp: createdSale.customer.whatsapp, ip: createdSale.customer.ip },
+                        products: utmifyProducts, trackingParameters: createdSale.trackingParameters,
+                        commission: createdSale.commission, approvedDate: createdSale.paidAt,
+                        couponCodeUsed: createdSale.couponCodeUsed, discountAppliedInCents: createdSale.discountAppliedInCents,
+                        originalAmountBeforeDiscountInCents: createdSale.originalAmountBeforeDiscountInCents,
+                    };
+                    await utmifyService.sendOrderData(utmifyPayload, appSettings.apiTokens.utmify);
+                }
+                
+                if (abandonedCartId) {
+                    await abandonedCartService.updateAbandonedCartStatus(abandonedCartId, AbandonedCartStatus.RECOVERED, null);
+                }
+                localStorage.removeItem(LOCALSTORAGE_CHECKOUT_KEY);
+                navigate(`/thank-you/${transactionId}?origProdId=${product.id}`);
 
-          } else if (paymentStatus === PaymentStatus.EXPIRED || paymentStatus === PaymentStatus.CANCELLED || paymentStatus === PaymentStatus.FAILED) {
-            if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-            if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
-            setIsPollingPayment(false);
-            setError(`O pagamento PIX ${paymentStatus === PaymentStatus.EXPIRED ? 'expirou' : 'falhou'}. Por favor, tente novamente.`);
-          }
-        // } // Fim do if (statusResponse.success && statusResponse.data)
+            } else if (currentStatus === PaymentStatus.EXPIRED || currentStatus === PaymentStatus.CANCELLED || currentStatus === PaymentStatus.FAILED) {
+                if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
+                if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
+                setIsPollingPayment(false);
+                setError(`O pagamento PIX ${currentStatus === PaymentStatus.EXPIRED ? 'expirou' : 'falhou'}. Por favor, tente novamente.`);
+            }
+        } else {
+             console.warn("Polling: Resposta da função 'verificar-status-pix' não foi bem-sucedida ou não continha dados.");
+        }
       } catch (pollError) {
-        console.error("Polling error (simulated context):", pollError);
-         // Se a chamada real falhar, você pode querer parar o polling ou logar
+        console.error("Erro durante o polling do status do PIX:", pollError);
+        // Considerar parar o polling em caso de erros repetidos ou fatais
       }
     }, POLLING_INTERVAL);
 
     return () => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-      if (pollingTimeoutRef.current) clearTimeout(pollingTimeoutRef.current);
+      if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
+      if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
     };
   };
 

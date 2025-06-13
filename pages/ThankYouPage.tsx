@@ -9,7 +9,8 @@ import { productService } from '../services/productService';
 import { Sale, SaleProductItem, Product, UpsellOffer, PaymentStatus, PushInPayPixRequest, PushInPayPixResponseData, PushInPayPixResponse } from '../types';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { CheckCircleIcon, DocumentDuplicateIcon, MOCK_WEBHOOK_URL } from '@/constants.tsx'; 
-import { pushinPayService } from '../services/pushinPayService'; 
+// import { pushinPayService } from '../services/pushinPayService'; // Removido
+import { supabase } from '../supabaseClient'; // Importar supabase
 import { Input } from '../components/ui/Input'; 
 
 
@@ -40,7 +41,7 @@ export const ThankYouPage: React.FC = () => {
   const [isProcessingUpsell, setIsProcessingUpsell] = useState(false);
   const [upsellPixData, setUpsellPixData] = useState<PushInPayPixResponseData | null>(null); 
   const [upsellErrorMessage, setUpsellErrorMessage] = useState<string | null>(null);
-  const [upsellSuccessMessage, setUpsellSuccessMessage] = useState<string | null>(null);
+  // const [upsellSuccessMessage, setUpsellSuccessMessage] = useState<string | null>(null); // Removido pois o PIX gerado é o sucesso
   const [copySuccessUpsell, setCopySuccessUpsell] = useState(false);
 
 
@@ -98,7 +99,7 @@ export const ThankYouPage: React.FC = () => {
     }
     setIsProcessingUpsell(true);
     setUpsellErrorMessage(null);
-    setUpsellSuccessMessage(null);
+    setUpsellPixData(null); // Limpa dados de PIX anterior
 
     try {
       const upsellPixPayload: PushInPayPixRequest = {
@@ -120,17 +121,41 @@ export const ThankYouPage: React.FC = () => {
         originalSaleId: mainSaleDetails.id,
       };
 
-      const response = await pushinPayService.generatePixCharge(upsellPixPayload, mainSaleDetails.platformUserId);
+      // Chama a Edge Function 'gerar-pix'
+      console.log("ThankYouPage: Invocando 'gerar-pix' para upsell com payload:", upsellPixPayload, "para productOwnerUserId:", mainSaleDetails.platformUserId);
+      const { data: pixFunctionResponse, error: functionError } = await supabase.functions.invoke<PushInPayPixResponse>('gerar-pix', {
+          body: {
+              payload: upsellPixPayload,
+              productOwnerUserId: mainSaleDetails.platformUserId
+          }
+      });
+      console.log("ThankYouPage: Response from 'gerar-pix' for upsell:", pixFunctionResponse);
+      console.error("ThankYouPage: Error from 'gerar-pix' for upsell (if any):", functionError);
 
-      if (response.success && response.data && response.data.id){
-        setUpsellPixData(response.data);
-        // Logic to update mainSaleDetails with upsellPushInPayTransactionId typically after payment confirmation.
-        // For now, just showing PIX. A webhook or polling on this page would handle actual confirmation.
-        // This ThankYouPage currently doesn't poll for upsell payment status.
-      } else {
-        setUpsellErrorMessage(response.message || "Falha ao gerar PIX para oferta adicional.");
+      if (functionError) {
+        let errorMessage = "Falha ao gerar PIX para oferta adicional.";
+         if (functionError.message) {
+             try {
+                const parsedContext = JSON.parse(functionError.context || "{}");
+                errorMessage = parsedContext.message || functionError.message;
+             } catch (e) {
+                errorMessage = functionError.message;
+             }
+        }
+        throw new Error(errorMessage);
       }
+
+      if (pixFunctionResponse && pixFunctionResponse.success && pixFunctionResponse.data) {
+        setUpsellPixData(pixFunctionResponse.data);
+        // Nota: A confirmação de pagamento do upsell e atualização do pedido principal
+        // precisariam de lógica adicional (polling aqui ou webhook no backend).
+        // Por ora, apenas exibimos o PIX do upsell.
+      } else {
+        throw new Error(pixFunctionResponse?.message || "A resposta da função não continha os dados do PIX para o upsell.");
+      }
+
     } catch (paymentError: any) {
+        console.error("Upsell PIX Payment Error:", paymentError);
         setUpsellErrorMessage(paymentError.message || "Erro desconhecido ao processar oferta adicional.");
     } finally {
         setIsProcessingUpsell(false);
@@ -139,6 +164,7 @@ export const ThankYouPage: React.FC = () => {
   
   const handleDeclineUpsell = () => {
     setShowUpsellModal(false);
+    setUpsellPixData(null); // Limpa o PIX se o modal for fechado após um PIX ser gerado.
     // Potentially track declined upsell
   };
 
