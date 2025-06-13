@@ -9,8 +9,7 @@ import { productService } from '../services/productService';
 import { Sale, SaleProductItem, Product, UpsellOffer, PaymentStatus, PushInPayPixRequest, PushInPayPixResponseData, PushInPayPixResponse } from '../types';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { CheckCircleIcon, DocumentDuplicateIcon, MOCK_WEBHOOK_URL } from '@/constants.tsx'; 
-// import { pushinPayService } from '../services/pushinPayService'; // Removido
-import { supabase } from '../supabaseClient'; // Importar supabase
+import { supabase } from '../supabaseClient'; 
 import { Input } from '../components/ui/Input'; 
 
 
@@ -41,7 +40,6 @@ export const ThankYouPage: React.FC = () => {
   const [isProcessingUpsell, setIsProcessingUpsell] = useState(false);
   const [upsellPixData, setUpsellPixData] = useState<PushInPayPixResponseData | null>(null); 
   const [upsellErrorMessage, setUpsellErrorMessage] = useState<string | null>(null);
-  // const [upsellSuccessMessage, setUpsellSuccessMessage] = useState<string | null>(null); // Removido pois o PIX gerado é o sucesso
   const [copySuccessUpsell, setCopySuccessUpsell] = useState(false);
 
 
@@ -99,7 +97,7 @@ export const ThankYouPage: React.FC = () => {
     }
     setIsProcessingUpsell(true);
     setUpsellErrorMessage(null);
-    setUpsellPixData(null); // Limpa dados de PIX anterior
+    setUpsellPixData(null);
 
     try {
       const upsellPixPayload: PushInPayPixRequest = {
@@ -121,7 +119,6 @@ export const ThankYouPage: React.FC = () => {
         originalSaleId: mainSaleDetails.id,
       };
 
-      // Chama a Edge Function 'gerar-pix'
       console.log("ThankYouPage: Invocando 'gerar-pix' para upsell com payload:", upsellPixPayload, "para productOwnerUserId:", mainSaleDetails.platformUserId);
       const { data: pixFunctionResponse, error: functionError } = await supabase.functions.invoke<PushInPayPixResponse>('gerar-pix', {
           body: {
@@ -134,10 +131,16 @@ export const ThankYouPage: React.FC = () => {
 
       if (functionError) {
         let errorMessage = "Falha ao gerar PIX para oferta adicional.";
-         if (functionError.message) {
+         if (typeof functionError.message === 'string') {
              try {
-                const parsedContext = JSON.parse(functionError.context || "{}");
-                errorMessage = parsedContext.message || functionError.message;
+                const parsedMessage = JSON.parse(functionError.message);
+                 if (parsedMessage && parsedMessage.error && typeof parsedMessage.error === 'string') {
+                    errorMessage = parsedMessage.error;
+                } else if (parsedMessage && parsedMessage.message && typeof parsedMessage.message === 'string') {
+                    errorMessage = parsedMessage.message;
+                } else {
+                    errorMessage = functionError.message;
+                }
              } catch (e) {
                 errorMessage = functionError.message;
              }
@@ -149,7 +152,6 @@ export const ThankYouPage: React.FC = () => {
         setUpsellPixData(pixFunctionResponse.data);
         // Nota: A confirmação de pagamento do upsell e atualização do pedido principal
         // precisariam de lógica adicional (polling aqui ou webhook no backend).
-        // Por ora, apenas exibimos o PIX do upsell.
       } else {
         throw new Error(pixFunctionResponse?.message || "A resposta da função não continha os dados do PIX para o upsell.");
       }
@@ -164,8 +166,7 @@ export const ThankYouPage: React.FC = () => {
   
   const handleDeclineUpsell = () => {
     setShowUpsellModal(false);
-    setUpsellPixData(null); // Limpa o PIX se o modal for fechado após um PIX ser gerado.
-    // Potentially track declined upsell
+    setUpsellPixData(null);
   };
 
   const copyUpsellPixCode = () => {
@@ -254,7 +255,6 @@ export const ThankYouPage: React.FC = () => {
         </div>
       </Card>
       
-      {/* Upsell Modal */}
       {upsellOffer && upsellProductPrice !== null && (
         <Modal isOpen={showUpsellModal} onClose={handleDeclineUpsell} title="Uma Oferta Especial Para Você!" size="lg">
             {upsellPixData ? (

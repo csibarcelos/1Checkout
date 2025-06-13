@@ -99,7 +99,7 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
   includeOrderBump, handleToggleOrderBump, isSubmitting, handlePayWithPix,
   pixData, copyPixCode, copySuccess, paymentStatus, error, getPrimaryColor, getCtaTextColor,
   isPollingPayment, clearAppliedCoupon, removeOrderBump,
-  setPixData, setPaymentStatus, setError: setGeneralError, // Renamed setError to avoid conflict
+  setPixData, setPaymentStatus, setError: setGeneralError, 
   termsAccepted, handleTermsAcceptedChange
 }) => {
   if (!product || finalPrice === null || originalPriceBeforeDiscount === null) {
@@ -112,7 +112,6 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
     <div className="checkout-light-theme min-h-screen">
       <style>{`:root { --color-checkout-primary: ${primaryColor}; --color-checkout-cta-text: ${ctaTextColor}; }`}</style>
       <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
-        {/* Header Section */}
         <header className="mb-8 text-center">
           {product.checkoutCustomization?.logoUrl ? (
             <img src={product.checkoutCustomization.logoUrl} alt={`${product.name} Logo`} className="h-16 md:h-20 mx-auto mb-4 object-contain" />
@@ -121,9 +120,7 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
           )}
         </header>
 
-        {/* Main Content Area */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          {/* Left Column: Product Info, Sales Copy, Testimonials */}
           <div className="space-y-6">
             {product.checkoutCustomization?.videoUrl && (
               <div className="aspect-video bg-neutral-800 rounded-lg shadow-lg overflow-hidden border border-neutral-300">
@@ -162,14 +159,12 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
             )}
           </div>
 
-          {/* Right Column: Order Form, Payment */}
           <div className="space-y-6 lg:sticky lg:top-8">
             <Card className="bg-white border-neutral-300 shadow-lg">
                 <div className="flex justify-between items-baseline mb-2">
                     <h2 className="text-xl font-semibold text-neutral-800">Resumo do Pedido</h2>
                     {product.checkoutCustomization?.countdownTimer?.enabled && (
                          <div id="checkout-countdown-timer" className="text-sm font-medium px-2 py-1 rounded">
-                           {/* O timer será renderizado aqui pelo useEffect na CheckoutPage */}
                          </div>
                     )}
                 </div>
@@ -205,7 +200,6 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
                 </div>
               </div>
 
-              {/* Order Bump Offer */}
                 {product.orderBump && !pixData && (
                     <div className="my-5 p-4 rounded-lg border-2" style={{borderColor: primaryColor, backgroundColor: `${primaryColor}1A`}}>
                         <h3 className="text-lg font-semibold mb-2" style={{color: primaryColor}}>OFERTA ESPECIAL! <span className="text-neutral-800">Adicionar "{product.orderBump.name}"?</span></h3>
@@ -227,8 +221,6 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
                     </div>
                 )}
 
-
-              {/* Payment Processing UI */}
               {pixData ? (
                 <div className="space-y-4 text-center">
                   <h3 className="text-xl font-semibold" style={{color: primaryColor}}>Pague com PIX para finalizar!</h3>
@@ -291,7 +283,6 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
                     </div>
                   </div>
                   
-                  {/* Coupon Area */}
                   {!appliedCoupon && product.coupons && product.coupons.length > 0 && (
                     <div className="pt-3">
                         <label htmlFor="couponCode" className="block text-sm font-medium text-neutral-700 mb-1">Cupom de Desconto</label>
@@ -308,7 +299,6 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
                     </div>
                   )}
 
-                   {/* Terms and Conditions Checkbox */}
                   <div className="flex items-start">
                     <div className="flex items-center h-5">
                       <input
@@ -328,7 +318,6 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
                     </div>
                   </div>
 
-
                   {error && <p className="text-sm text-red-500 p-2 bg-red-50 rounded-md border border-red-300">{error}</p>}
                   
                   <Button type="submit" isLoading={isSubmitting} style={{ backgroundColor: primaryColor, color: ctaTextColor }} className="w-full text-lg py-3 mt-2" disabled={isSubmitting || !termsAccepted}>
@@ -342,7 +331,6 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
               </p>
             </Card>
             
-            {/* Guarantee Badges */}
             {product.checkoutCustomization?.guaranteeBadges && product.checkoutCustomization.guaranteeBadges.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                 {product.checkoutCustomization.guaranteeBadges.map((badge: { id: string; imageUrl: string; altText: string; }) => (
@@ -355,7 +343,6 @@ const CheckoutPageUI: React.FC<CheckoutPageUIProps> = ({
           </div>
         </div>
         
-        {/* Footer */}
         <footer className="mt-12 pt-6 border-t border-neutral-300 text-center">
             <p className="text-xs text-neutral-500">&copy; {new Date().getFullYear()} {product.name}. Todos os direitos reservados.</p>
             <p className="text-xs text-neutral-500 mt-1">Processado por {PLATFORM_NAME}.</p>
@@ -398,18 +385,15 @@ export const CheckoutPage: React.FC = () => {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isPollingPayment, setIsPollingPayment] = useState(false);
-  const pollingTimeoutRef = useRef<number | null>(null); // Changed to number for window.setTimeout
-  const pollingIntervalRef = useRef<number | null>(null); // Changed to number for window.setInterval
+  const pollingTimeoutRef = useRef<number | null>(null);
+  const pollingIntervalRef = useRef<number | null>(null);
   
   const [abandonedCartId, setAbandonedCartId] = useState<string | null>(null);
-  const abandonedCartTimeoutRef = useRef<number | null>(null); // Changed to number for window.setTimeout
+  const abandonedCartTimeoutRef = useRef<number | null>(null);
 
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [currentProductsForSale, setCurrentProductsForSale] = useState<SaleProductItem[]>([]);
 
-  const { accessToken } = useAuth(); 
-
-  // Restore form data from localStorage
   useEffect(() => {
     const savedData = localStorage.getItem(LOCALSTORAGE_CHECKOUT_KEY);
     if (savedData) {
@@ -430,13 +414,11 @@ export const CheckoutPage: React.FC = () => {
     }
   }, [slug]);
 
-  // Save form data to localStorage on change
   useEffect(() => {
     const dataToSave = { slug, customerName, customerEmail, rawWhatsappNumber, customerWhatsappCountryCode };
     localStorage.setItem(LOCALSTORAGE_CHECKOUT_KEY, JSON.stringify(dataToSave));
   }, [slug, customerName, customerEmail, rawWhatsappNumber, customerWhatsappCountryCode]);
 
-  // Fetch product and settings
   useEffect(() => {
     const fetchAllData = async () => {
       if (!slug) {
@@ -489,11 +471,10 @@ export const CheckoutPage: React.FC = () => {
     return getContrastingTextColor(getPrimaryColor());
   }, [getPrimaryColor]);
 
-  // Countdown Timer Logic
   useEffect(() => {
     if (!product?.checkoutCustomization?.countdownTimer?.enabled || !product.checkoutCustomization.countdownTimer.durationMinutes) {
         const timerEl = document.getElementById('checkout-countdown-timer');
-        if (timerEl) timerEl.innerHTML = ''; // Clear content if exists
+        if (timerEl) timerEl.innerHTML = '';
         return;
     }
     const timerConfig = product.checkoutCustomization.countdownTimer;
@@ -511,7 +492,7 @@ export const CheckoutPage: React.FC = () => {
       localStorage.setItem(storageKey, endTime.toString());
     }
 
-    const intervalId = window.setInterval(() => { // Use window.setInterval
+    const intervalId = window.setInterval(() => {
       const now = Date.now();
       const distance = endTime! - now;
 
@@ -530,7 +511,6 @@ export const CheckoutPage: React.FC = () => {
   }, [product, slug]);
 
 
-  // Price calculation logic
   useEffect(() => {
     if (product) {
       let currentTotal = product.priceInCents;
@@ -539,7 +519,7 @@ export const CheckoutPage: React.FC = () => {
 
       tempProductsForSale.push({
           productId: product.id, name: product.name, quantity: 1, 
-          priceInCents: product.priceInCents, // This will be adjusted by coupon if any
+          priceInCents: product.priceInCents,
           originalPriceInCents: product.priceInCents,
           slug: product.slug,
           deliveryUrl: product.deliveryUrl,
@@ -566,8 +546,8 @@ export const CheckoutPage: React.FC = () => {
             priceInCents: product.orderBump.customPriceInCents, 
             originalPriceInCents: product.orderBump.customPriceInCents, 
             isOrderBump: true,
-            slug: undefined, // Order bump usually doesn't have its own slug for this context
-            deliveryUrl: undefined // Order bump delivery might be handled differently
+            slug: undefined,
+            deliveryUrl: undefined
         });
       }
       setOriginalPriceBeforeDiscount(initialTotalForOriginalPrice);
@@ -607,10 +587,9 @@ export const CheckoutPage: React.FC = () => {
       setIncludeOrderBump(false);
   };
 
-  // Abandoned Cart Logic
   const scheduleAbandonedCart = useCallback(() => {
-    if (abandonedCartTimeoutRef.current) window.clearTimeout(abandonedCartTimeoutRef.current); // Use window.clearTimeout
-    abandonedCartTimeoutRef.current = window.setTimeout(async () => { // Use window.setTimeout
+    if (abandonedCartTimeoutRef.current) window.clearTimeout(abandonedCartTimeoutRef.current);
+    abandonedCartTimeoutRef.current = window.setTimeout(async () => {
       if (!product || !product.id || !customerEmail || paymentStatus === PaymentStatus.PAID || !finalPrice) return;
       
       const payload: CreateAbandonedCartPayload = {
@@ -630,8 +609,7 @@ export const CheckoutPage: React.FC = () => {
             setAbandonedCartId(newCart.id);
             console.log("Abandoned cart created:", newCart.id);
         } else { 
-            // await abandonedCartService.updateAbandonedCartAttempt(abandonedCartId, payload); // Update removed, new log on each schedule
-            const updatedCart = await abandonedCartService.createAbandonedCartAttempt(payload); // Log new attempt instead of update
+            const updatedCart = await abandonedCartService.createAbandonedCartAttempt(payload);
             setAbandonedCartId(updatedCart.id);
             console.log("New abandoned cart attempt logged:", updatedCart.id);
         }
@@ -646,7 +624,7 @@ export const CheckoutPage: React.FC = () => {
       scheduleAbandonedCart();
     }
     return () => {
-      if (abandonedCartTimeoutRef.current) window.clearTimeout(abandonedCartTimeoutRef.current); // Use window.clearTimeout
+      if (abandonedCartTimeoutRef.current) window.clearTimeout(abandonedCartTimeoutRef.current);
     };
   }, [customerName, customerEmail, rawWhatsappNumber, product, pixData, paymentStatus, scheduleAbandonedCart]);
 
@@ -671,9 +649,9 @@ export const CheckoutPage: React.FC = () => {
     setPixData(null);
     
     try {
-        const pixPayload: PushInPayPixRequest = { // Added type for clarity
+        const pixPayload: PushInPayPixRequest = {
             value: finalPrice,
-            originalValueBeforeDiscount: originalPriceBeforeDiscount ?? finalPrice,
+            originalValueBeforeDiscount: originalPriceBeforeDiscount ?? finalPrice, // Usar valor final se originalPriceBeforeDiscount for null
             webhook_url: MOCK_WEBHOOK_URL, 
             customerName: customerName,
             customerEmail: customerEmail,
@@ -697,13 +675,19 @@ export const CheckoutPage: React.FC = () => {
 
         if (functionError) {
             let errorMessage = "Falha ao gerar PIX junto ao provedor.";
-            if (functionError.message) {
-                 try {
-                    const parsedContext = JSON.parse(functionError.context || "{}");
-                    errorMessage = parsedContext.message || functionError.message;
-                 } catch (e) {
-                    errorMessage = functionError.message;
-                 }
+            if (typeof functionError.message === 'string') {
+              try {
+                  const parsedMessage = JSON.parse(functionError.message);
+                  if (parsedMessage && parsedMessage.error && typeof parsedMessage.error === 'string') {
+                      errorMessage = parsedMessage.error;
+                  } else if (parsedMessage && parsedMessage.message && typeof parsedMessage.message === 'string') {
+                      errorMessage = parsedMessage.message;
+                  } else {
+                      errorMessage = functionError.message;
+                  }
+              } catch (e) {
+                  errorMessage = functionError.message;
+              }
             }
             throw new Error(errorMessage);
         }
@@ -726,11 +710,11 @@ export const CheckoutPage: React.FC = () => {
 
 
   const startPollingPaymentStatus = (transactionId: string, productOwnerId: string) => {
-    if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current); // Use window.clearInterval
-    if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current); // Use window.clearTimeout
+    if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
+    if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
     setIsPollingPayment(true);
 
-    pollingTimeoutRef.current = window.setTimeout(() => { // Use window.setTimeout
+    pollingTimeoutRef.current = window.setTimeout(() => {
       if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
       setIsPollingPayment(false);
       if (paymentStatus !== PaymentStatus.PAID) { 
@@ -739,7 +723,7 @@ export const CheckoutPage: React.FC = () => {
       }
     }, POLLING_TIMEOUT_DURATION);
 
-    pollingIntervalRef.current = window.setInterval(async () => { // Use window.setInterval
+    pollingIntervalRef.current = window.setInterval(async () => {
       try {
         console.log(`Polling status for transactionId: ${transactionId}`);
         const { data: statusFunctionResponse, error: functionError } = await supabase.functions.invoke<PushInPayTransactionStatusResponse>('verificar-status-pix', {
@@ -751,7 +735,11 @@ export const CheckoutPage: React.FC = () => {
 
         if (functionError) {
             console.error("Erro ao verificar status do PIX (polling):", functionError.message);
-            // Não para o polling por erro de rede, a menos que seja erro fatal da função
+            setError(functionError.message || "Falha ao verificar status do PIX.");
+            if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
+            if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
+            setIsPollingPayment(false);
+            setPaymentStatus(PaymentStatus.FAILED);
             return;
         }
 
@@ -764,9 +752,9 @@ export const CheckoutPage: React.FC = () => {
                 if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
                 setIsPollingPayment(false);
 
-                if (!product || !platformSettings || currentProductsForSale.length === 0) {
-                    console.error("Product, PlatformSettings, or currentProductsForSale not available when trying to finalize sale.");
-                    setError("Erro ao finalizar a venda: dados do produto, configurações da plataforma ou itens da venda ausentes.");
+                if (!product || !platformSettings || currentProductsForSale.length === 0 || finalPrice === null || originalPriceBeforeDiscount === null) {
+                    console.error("Product, PlatformSettings, finalPrice, originalPriceBeforeDiscount, or currentProductsForSale not available when trying to finalize sale.");
+                    setError("Erro ao finalizar a venda: dados do produto, configurações da plataforma, preços ou itens da venda ausentes.");
                     return;
                 }
 
@@ -777,8 +765,8 @@ export const CheckoutPage: React.FC = () => {
                     customer: { name: customerName, email: customerEmail, whatsapp: customerWhatsappCountryCode + rawWhatsappNumber.replace(/\D/g, '') },
                     paymentMethod: PaymentMethod.PIX,
                     status: PaymentStatus.PAID,
-                    totalAmountInCents: finalPrice ?? 0,
-                    originalAmountBeforeDiscountInCents: originalPriceBeforeDiscount ?? finalPrice ?? 0,
+                    totalAmountInCents: finalPrice,
+                    originalAmountBeforeDiscountInCents: originalPriceBeforeDiscount,
                     discountAppliedInCents: discountApplied,
                     couponCodeUsed: appliedCoupon?.code,
                     trackingParameters: Object.fromEntries(new URLSearchParams(location.search).entries()),
@@ -818,10 +806,19 @@ export const CheckoutPage: React.FC = () => {
             }
         } else {
              console.warn("Polling: Resposta da função 'verificar-status-pix' não foi bem-sucedida ou não continha dados.");
+             setError(statusFunctionResponse?.message || "Resposta inválida ao verificar status do PIX.");
+             if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
+             if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
+             setIsPollingPayment(false);
+             setPaymentStatus(PaymentStatus.FAILED);
         }
-      } catch (pollError) {
+      } catch (pollError: any) {
         console.error("Erro durante o polling do status do PIX:", pollError);
-        // Considerar parar o polling em caso de erros repetidos ou fatais
+        setError(pollError.message || "Erro ao verificar status do pagamento. Tente novamente.");
+        if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
+        if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
+        setIsPollingPayment(false);
+        setPaymentStatus(PaymentStatus.FAILED);
       }
     }, POLLING_INTERVAL);
 
