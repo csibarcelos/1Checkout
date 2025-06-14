@@ -1,9 +1,8 @@
-
 import React from 'react';
-import { Link, type LinkProps } from "react-router-dom"; // Use type import for LinkProps
+import { Link, type LinkProps } from "react-router"; // Alterado de react-router-dom
 
 interface ButtonBaseProps {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline' | 'gold';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
@@ -33,20 +32,22 @@ export const Button: React.FC<ButtonProps> = ({
   to,
   ...props
 }) => {
-  const baseStyles = 'font-semibold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 transition-all duration-150 ease-in-out inline-flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed';
+  const baseStyles = 'font-semibold rounded-2xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg-main transition-all duration-300 ease-in-out inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.03] active:scale-[0.98]';
 
+  // Texto do botão primário precisa de alto contraste com azul neon. Preto é uma boa opção.
   const variantStyles = {
-    primary: 'bg-neutral-700 text-primary hover:bg-neutral-600 focus:ring-primary transform hover:scale-[1.01] active:scale-[0.99]',
-    secondary: 'bg-neutral-600 text-neutral-100 hover:bg-neutral-500 focus:ring-neutral-400',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    ghost: 'text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100 focus:ring-primary',
-    outline: 'border border-neutral-600 text-neutral-300 hover:bg-neutral-700 hover:border-neutral-500 hover:text-neutral-100 focus:ring-primary',
+    primary: 'bg-accent-blue-neon text-black hover:bg-opacity-80 focus:ring-accent-blue-neon shadow-md hover:shadow-glow-blue-neon/70',
+    gold: 'bg-accent-gold text-black hover:bg-opacity-80 focus:ring-accent-gold shadow-md hover:shadow-glow-gold/70',
+    secondary: 'bg-neutral-700 text-text-strong hover:bg-neutral-600 focus:ring-neutral-500', // Usar um neutro mais escuro
+    danger: 'bg-status-error text-text-strong hover:bg-opacity-80 focus:ring-status-error',
+    ghost: 'text-text-default hover:bg-bg-surface hover:text-text-strong focus:ring-accent-blue-neon',
+    outline: 'border border-border-subtle text-text-default hover:bg-bg-surface hover:border-accent-blue-neon hover:text-accent-blue-neon focus:ring-accent-blue-neon',
   };
 
   const sizeStyles = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
+    sm: 'px-4 py-2 text-sm h-10',
+    md: 'px-6 py-2.5 text-base h-12', // Ajustado para altura h-12 (48px)
+    lg: 'px-8 py-3 text-lg h-14',   // Ajustado para altura h-14 (56px)
   };
 
   const combinedClassName = `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`;
@@ -60,9 +61,9 @@ export const Button: React.FC<ButtonProps> = ({
         </svg>
       ) : (
         <>
-          {leftIcon && <span className="mr-2">{leftIcon}</span>}
+          {leftIcon && <span className="mr-2 -ml-1 h-5 w-5">{leftIcon}</span>}
           {children}
-          {rightIcon && <span className="ml-2">{rightIcon}</span>}
+          {rightIcon && <span className="ml-2 -mr-1 h-5 w-5">{rightIcon}</span>}
         </>
       )}
     </>
@@ -72,7 +73,7 @@ export const Button: React.FC<ButtonProps> = ({
     const linkSpecificProps = props as Omit<LinkProps, 'to' | 'children' | 'className'>;
     if (isLoading || (props as StandardButtonProps).disabled) {
         return (
-            <span className={`${combinedClassName} opacity-60 cursor-not-allowed`} aria-disabled="true">
+            <span className={`${combinedClassName} opacity-50 cursor-not-allowed`} aria-disabled="true">
                 {content}
             </span>
         );
@@ -107,13 +108,13 @@ interface ToggleSwitchProps {
 
 export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onChange, label, srLabel, disabled = false }) => {
   return (
-    <div className={`flex items-center ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
-      {label && <span className={`mr-3 text-sm font-medium ${disabled ? 'text-neutral-500' : 'text-neutral-300'}`}>{label}</span>}
+    <div className={`flex items-center ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+      {label && <span className={`mr-3 text-sm font-medium ${disabled ? 'text-text-muted' : 'text-text-default'}`}>{label}</span>}
       <button
         type="button"
         className={`${
-          enabled ? 'bg-primary' : 'bg-neutral-600'
-        } relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-neutral-900
+          enabled ? 'bg-accent-blue-neon' : 'bg-neutral-700' // Usar bg-neutral-700 para estado desligado
+        } relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent-blue-neon focus:ring-offset-2 focus:ring-offset-bg-main
         ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
         `}
         role="switch"
@@ -130,7 +131,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onChange, l
           aria-hidden="true"
           className={`${
             enabled ? 'translate-x-5' : 'translate-x-0'
-          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-text-strong shadow ring-0 transition duration-200 ease-in-out`}
         />
       </button>
     </div>

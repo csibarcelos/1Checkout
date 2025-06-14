@@ -1,11 +1,10 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Card } from '../../components/ui/Card';
+import { Link } from 'react-router'; // Alterado de react-router-dom
+import { Card } from '../../components/ui/Card'; // Caminho corrigido aqui
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { User, Sale, PaymentStatus, PlatformSettings } from '../../types';
-// import { apiClient } from '../../services/apiClient'; // Removido
 import { settingsService } from '../../services/settingsService';
+import { superAdminService } from '../../services/superAdminService'; 
 import { useAuth } from '../../contexts/AuthContext';
 import { UsersIcon, ShoppingCartIcon, CogIcon, CurrencyDollarIcon as CurrencyDollarHeroIcon, PresentationChartLineIcon as ChartBarIcon } from '@heroicons/react/24/outline';
 import { Button } from '../../components/ui/Button';
@@ -35,7 +34,7 @@ const getEndOfDate = (date: Date): Date => {
 const filterDataByDateRange = <T extends { createdAt?: string; paidAt?: string }>(
   data: T[],
   dateRange: string,
-  dateField: 'createdAt' | 'paidAt' = 'createdAt' // Default to createdAt, use paidAt for paid sales
+  dateField: 'createdAt' | 'paidAt' = 'createdAt'
 ): T[] => {
   const now = new Date();
   let startDate: Date | null = null;
@@ -75,7 +74,7 @@ const filterDataByDateRange = <T extends { createdAt?: string; paidAt?: string }
 
   return data.filter(item => {
     const itemDateStr = dateField === 'paidAt' ? item.paidAt : item.createdAt;
-    if (!itemDateStr) return dateField === 'paidAt' ? false : true; // if filtering by paidAt and it's not set, exclude
+    if (!itemDateStr) return dateField === 'paidAt' ? false : true;
     const itemDate = new Date(itemDateStr);
     if (isNaN(itemDate.getTime())) return false;
     
@@ -91,12 +90,10 @@ export const SuperAdminDashboardPage: React.FC = () => {
   const [allSales, setAllSales] = useState<Sale[]>([]);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   
-  // Filtered data for display
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
 
-  // Metrics based on filtered data
-  const [totalUsersCount, setTotalUsersCount] = useState(0); // Always total
+  const [totalUsersCount, setTotalUsersCount] = useState(0);
   const [newUsersInPeriod, setNewUsersInPeriod] = useState(0);
   const [salesInPeriodCount, setSalesInPeriodCount] = useState(0);
   const [salesValueInPeriod, setSalesValueInPeriod] = useState(0);
@@ -130,14 +127,11 @@ export const SuperAdminDashboardPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // TODO: Implementar chamadas diretas ao Supabase para buscar todos os usuários e todas as vendas
-      // Por agora, retornará dados vazios ou erro.
-      // const usersData = await someSuperAdminUserService.getAllUsers(accessToken);
-      // const salesData = await someSuperAdminSalesService.getAllSales(accessToken);
-      const usersData: User[] = []; // Placeholder
-      const salesData: Sale[] = []; // Placeholder
-      
-      const platSettings = await settingsService.getPlatformSettings(accessToken);
+      const [usersData, salesData, platSettings] = await Promise.all([
+        superAdminService.getAllPlatformUsers(accessToken),
+        superAdminService.getAllPlatformSales(accessToken),
+        settingsService.getPlatformSettings(accessToken)
+      ]);
       
       setAllUsers(usersData);
       setAllSales(salesData);
@@ -147,11 +141,13 @@ export const SuperAdminDashboardPage: React.FC = () => {
       setRecentSales(salesData.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0,5));
       setRecentUsers(usersData.sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).slice(0,5));
       
-      setError("SuperAdmin Dashboard: Integração de dados via Supabase pendente.");
-
+      if(usersData.length === 0 && salesData.length === 0) {
+        setError("Nenhum dado de usuário ou venda encontrado na plataforma.");
+      }
 
     } catch (err: any) {
-      setError(err.error?.message || err.message || 'Falha ao carregar dados do dashboard de super admin.');
+      setError(err.message || 'Falha ao carregar dados do dashboard de super admin.');
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -161,7 +157,6 @@ export const SuperAdminDashboardPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Recalculate metrics when filters or base data change
   useEffect(() => {
     if (isLoading || !platformSettings) return; 
 

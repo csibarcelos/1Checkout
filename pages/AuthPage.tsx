@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router"; // Alterado de react-router-dom
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -48,7 +47,8 @@ export const AuthPage: React.FC = () => {
     }
     // Lógica para lidar com tokens de redefinição de senha na URL (a ser implementado na página /reset-password)
     // Ex: if (location.hash.includes('type=recovery')) { navigateToResetPasswordPage_with_token(); }
-  }, [location.search, location.hash]);
+    // Com createBrowserRouter, o hash não é usado para routing. Parâmetros de URL ou state são melhores.
+  }, [location.search]); // location.hash removido das dependências
 
   useEffect(() => {
     if (!authContextLoading && isAuthenticated) {
@@ -81,13 +81,10 @@ export const AuthPage: React.FC = () => {
         if (password !== confirmPassword) throw new Error('As senhas não coincidem.');
         if (password.length < 6) throw new Error('A senha deve ter no mínimo 6 caracteres.');
         await register(email, name, password);
-        // Após o registro, o Supabase (se configurado) envia um e-mail de confirmação.
-        // Mostramos uma mensagem para o usuário verificar o e-mail.
         setCurrentView('emailVerification');
         setSuccessMessage(`Cadastro quase completo! Enviamos um e-mail de confirmação para ${email}. Por favor, verifique sua caixa de entrada (e spam) para ativar sua conta.`);
       } else if (currentView === 'login') {
         await login(email, password);
-        // O useEffect cuidará do redirecionamento se o login for bem-sucedido
       } else if (currentView === 'forgotPassword') {
         await requestPasswordReset(email);
         setSuccessMessage(`Se uma conta com o e-mail ${email} existir, um link para redefinição de senha foi enviado.`);

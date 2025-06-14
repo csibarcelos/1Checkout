@@ -4,8 +4,8 @@ import React from 'react';
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
-  icon?: React.ReactNode;
-  labelClassName?: string; // Added optional prop for label class
+  icon?: React.ReactElement<React.SVGProps<SVGSVGElement>>; // Changed from React.ReactElement
+  labelClassName?: string;
 }
 
 export const Input: React.FC<InputProps> = ({ label, name, error, icon, className, labelClassName, ...props }) => {
@@ -15,32 +15,33 @@ export const Input: React.FC<InputProps> = ({ label, name, error, icon, classNam
       {label && (
         <label 
           htmlFor={name} 
-          className={`block text-sm font-medium mb-1 ${labelClassName || 'text-neutral-300'}`} // Apply labelClassName or default
+          className={`block text-sm font-medium mb-1.5 ${labelClassName || 'text-text-default'}`}
         >
           {label}
         </label>
       )}
       <div className="relative">
         {icon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
-            {icon}
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-text-muted">
+            {React.cloneElement(icon, { className: 'h-5 w-5' })}
           </div>
         )}
         <input
           id={name}
           name={name}
-          className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none sm:text-sm transition-colors duration-150
-            ${icon ? 'pl-10' : ''}
+          className={`block w-full px-4 py-2.5 border rounded-xl shadow-sm focus:outline-none sm:text-sm transition-all duration-150 ease-in-out
+            bg-white/5 backdrop-blur-sm caret-accent-blue-neon
+            ${icon ? 'pl-12' : 'pl-4'}
             ${hasError 
-              ? 'border-red-500 focus:ring-red-500 focus:border-red-500 text-red-500 placeholder-red-400' 
-              : 'border-neutral-600 focus:border-primary focus:ring-2 focus:ring-primary/70 text-neutral-100 placeholder-neutral-400'}
-            ${props.disabled ? 'bg-neutral-700 cursor-not-allowed opacity-70' : 'bg-neutral-800'}
+              ? 'border-status-error focus:ring-2 focus:ring-status-error focus:border-status-error text-status-error placeholder-status-error/70' 
+              : 'border-border-subtle focus:border-accent-blue-neon focus:ring-2 focus:ring-accent-blue-neon/70 text-text-strong placeholder-text-muted'}
+            ${props.disabled ? 'bg-neutral-700/50 cursor-not-allowed opacity-60' : 'hover:border-opacity-50 hover:border-accent-blue-neon/50'}
             ${className || ''}
           `}
           {...props}
         />
       </div>
-      {error && <p className="mt-1 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-status-error">{error}</p>}
     </div>
   );
 };
@@ -48,7 +49,7 @@ export const Input: React.FC<InputProps> = ({ label, name, error, icon, classNam
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
-  labelClassName?: string; // Added optional prop for label class
+  labelClassName?: string;
 }
 
 export const Textarea: React.FC<TextareaProps> = ({ label, name, error, className, labelClassName, ...props }) => {
@@ -58,7 +59,7 @@ export const Textarea: React.FC<TextareaProps> = ({ label, name, error, classNam
       {label && (
         <label 
           htmlFor={name} 
-          className={`block text-sm font-medium mb-1 ${labelClassName || 'text-neutral-300'}`} // Apply labelClassName or default
+          className={`block text-sm font-medium mb-1.5 ${labelClassName || 'text-text-default'}`}
         >
           {label}
         </label>
@@ -66,17 +67,18 @@ export const Textarea: React.FC<TextareaProps> = ({ label, name, error, classNam
       <textarea
         id={name}
         name={name}
-        rows={props.rows || 3}
-        className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none sm:text-sm transition-colors duration-150
+        rows={props.rows || 4}
+        className={`block w-full px-4 py-2.5 border rounded-xl shadow-sm focus:outline-none sm:text-sm transition-all duration-150 ease-in-out
+          bg-white/5 backdrop-blur-sm caret-accent-blue-neon
           ${hasError 
-            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 text-red-500 placeholder-red-400' 
-            : 'border-neutral-600 focus:border-primary focus:ring-2 focus:ring-primary/70 text-neutral-100 placeholder-neutral-400'}
-          ${props.disabled ? 'bg-neutral-700 cursor-not-allowed opacity-70' : 'bg-neutral-800'}
+            ? 'border-status-error focus:ring-2 focus:ring-status-error focus:border-status-error text-status-error placeholder-status-error/70' 
+            : 'border-border-subtle focus:border-accent-blue-neon focus:ring-2 focus:ring-accent-blue-neon/70 text-text-strong placeholder-text-muted'}
+          ${props.disabled ? 'bg-neutral-700/50 cursor-not-allowed opacity-60' : 'hover:border-opacity-50 hover:border-accent-blue-neon/50'}
           ${className || ''}
         `}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-status-error">{error}</p>}
     </div>
   );
 };

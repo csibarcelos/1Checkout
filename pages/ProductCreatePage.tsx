@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router"; // Alterado de react-router-dom
 import { Product, ProductCheckoutCustomization, OrderBumpOffer, UpsellOffer, Coupon } from '../types';
 import { productService } from '../services/productService';
 import { Button, ToggleSwitch } from '../components/ui/Button';
@@ -13,7 +12,7 @@ import { MiniEditor } from '../components/shared/MiniEditor';
 import { CouponFormModal } from '../components/shared/CouponFormModal';
 
 const defaultCheckoutCustomization: ProductCheckoutCustomization = {
-  primaryColor: COLOR_PALETTE_OPTIONS[0].value,
+  primaryColor: '#0D9488', // Alterado para a nova cor padrão
   logoUrl: '',
   videoUrl: '',
   salesCopy: '',
@@ -166,8 +165,8 @@ export const ProductCreatePage: React.FC = () => {
     try {
       const productData: Omit<Product, 'id' | 'platformUserId' | 'totalSales' | 'clicks' | 'checkoutViews' | 'conversionRate' | 'abandonmentRate' | 'slug'> = {
         name: productName, description, priceInCents: priceInCentsNum,
-        imageUrl: imageUrl.trim(), // Envia string vazia se limpo, serviço converterá para null
-        deliveryUrl: deliveryUrl.trim(), // Envia string vazia se limpo, serviço converterá para null
+        imageUrl: imageUrl.trim(), 
+        deliveryUrl: deliveryUrl.trim(), 
         checkoutCustomization,
         orderBump: orderBump?.productId ? orderBump : undefined,
         upsell: upsell?.productId ? upsell : undefined,

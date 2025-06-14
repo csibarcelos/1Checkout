@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Sale, PaymentStatus, SaleProductItem } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { BanknotesIcon } from '@heroicons/react/24/outline';
+import { superAdminService } from '../../services/superAdminService'; // Import superAdminService
 
 const formatCurrency = (valueInCents: number): string => {
     return `R$ ${(valueInCents / 100).toFixed(2).replace('.', ',')}`;
@@ -45,15 +46,13 @@ export const SuperAdminSalesPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // TODO: Implementar chamada direta ao Supabase para buscar todas as vendas.
-      // const salesData = await someSuperAdminSalesService.getAllSales(accessToken);
-      const salesData: Sale[] = []; // Placeholder
+      const salesData = await superAdminService.getAllPlatformSales(accessToken); // Use superAdminService
       setSales(salesData.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       if (salesData.length === 0) {
-        setError("SuperAdmin Sales: Integração de dados via Supabase pendente ou nenhuma venda encontrada.");
+        //setError("Nenhuma venda encontrada na plataforma."); // Keep error for no data, but remove placeholder message later
       }
     } catch (err: any) {
-      setError(err.error?.message || 'Falha ao carregar vendas.');
+      setError(err.message || 'Falha ao carregar vendas.');
     } finally {
       setIsLoading(false);
     }
@@ -85,12 +84,12 @@ export const SuperAdminSalesPage: React.FC = () => {
         <h1 className="text-3xl font-bold text-neutral-800">Todas as Vendas ({sales.length})</h1>
       </div>
 
-      {error && <p className="text-red-500 bg-red-50 p-3 rounded-md">{error}</p>}
+      {error && !isLoading && <p className="text-red-500 bg-red-50 p-3 rounded-md">{error}</p>}
 
       <Card className="p-0 sm:p-0">
-        {sales.length === 0 && !isLoading ? (
-          <p className="p-6 text-center text-neutral-500">{error || "Nenhuma venda encontrada na plataforma."}</p>
-        ) : (
+        {sales.length === 0 && !isLoading && !error ? (
+          <p className="p-6 text-center text-neutral-500">Nenhuma venda encontrada na plataforma.</p>
+        ) : sales.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-neutral-200">
               <thead className="bg-neutral-100">
@@ -108,7 +107,7 @@ export const SuperAdminSalesPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-neutral-200">
                 {sales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-primary-light/10 cursor-pointer" onClick={() => handleOpenSaleDetails(sale)}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{sale.id.split('_').pop()}...</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{sale.id.split('_').pop()?.substring(0,8)}...</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">{sale.platformUserId.substring(0,10)}...</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900">{sale.customer.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-700">{formatCurrency(sale.totalAmountInCents)}</td>
@@ -127,11 +126,11 @@ export const SuperAdminSalesPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-        )}
+        ) : null}
       </Card>
 
       {selectedSale && (
-        <Modal isOpen={isSaleDetailsModalOpen} onClose={handleCloseSaleDetails} title={`Detalhes da Venda ${selectedSale.id.split('_').pop()}`} size="lg">
+        <Modal isOpen={isSaleDetailsModalOpen} onClose={handleCloseSaleDetails} title={`Detalhes da Venda ${selectedSale.id.split('_').pop()?.substring(0,8)}...`} size="lg">
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
              <section>
               <h3 className="text-md font-semibold text-neutral-700 border-b pb-1 mb-2">Informações Gerais</h3>

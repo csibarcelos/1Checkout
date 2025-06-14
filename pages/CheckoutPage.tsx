@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router"; // Alterado de react-router-dom
+import { v4 as uuidv4 } from 'uuid'; 
 import { Product, PaymentStatus, Coupon, OrderBumpOffer, PushInPayPixResponseData, PushInPayPixResponse, AppSettings, PlatformSettings, SaleProductItem, PaymentMethod, Sale, UtmifyOrderPayload, AbandonedCartStatus, PushInPayPixRequest, PushInPayTransactionStatusResponse } from '../types'; 
 import { productService } from '../services/productService';
 import { abandonedCartService, CreateAbandonedCartPayload } from '../services/abandonedCartService';
@@ -676,6 +676,7 @@ export const CheckoutPage: React.FC = () => {
     setIsSubmitting(true);
     setPaymentStatus(null);
     setPixData(null);
+    const clientTraceId = uuidv4();
     
     try {
         const pixPayload: PushInPayPixRequest = {
@@ -691,15 +692,16 @@ export const CheckoutPage: React.FC = () => {
             discountAppliedInCents: discountApplied
         };
         
-        console.log("CheckoutPage: Invocando 'gerar-pix' com payload:", pixPayload, "para productOwnerUserId:", product.platformUserId);
+        console.log(`[CheckoutPage][${clientTraceId}] Invocando 'gerar-pix' com payload:`, pixPayload, "para productOwnerUserId:", product.platformUserId);
         const { data: pixFunctionResponse, error: functionError } = await supabase.functions.invoke<PushInPayPixResponse>('gerar-pix', {
+            headers: { 'X-Client-Trace-Id': clientTraceId },
             body: {
                 payload: pixPayload,
                 productOwnerUserId: product.platformUserId
             }
         });
-        console.log("CheckoutPage: Response from 'gerar-pix' Edge Function:", pixFunctionResponse);
-        console.error("CheckoutPage: Error from 'gerar-pix' Edge Function (if any):", functionError);
+        console.log(`[CheckoutPage][${clientTraceId}] Resposta da Edge Function 'gerar-pix':`, pixFunctionResponse);
+        if (functionError) console.error(`[CheckoutPage][${clientTraceId}] Erro da Edge Function 'gerar-pix':`, functionError);
 
 
         if (functionError) {
@@ -723,8 +725,8 @@ export const CheckoutPage: React.FC = () => {
 
         if (pixFunctionResponse && pixFunctionResponse.success && pixFunctionResponse.data) {
             setPixData(pixFunctionResponse.data);
-            const initialApiStatus = pixFunctionResponse.data.status; // This is string
-            const initialUiStatus = mapApiStatusToUiStatus(initialApiStatus); // This is PaymentStatus
+            const initialApiStatus = pixFunctionResponse.data.status; 
+            const initialUiStatus = mapApiStatusToUiStatus(initialApiStatus); 
             setPaymentStatus(initialUiStatus);
             startPollingPaymentStatus(pixFunctionResponse.data.id, product.platformUserId);
         } else {
@@ -732,7 +734,7 @@ export const CheckoutPage: React.FC = () => {
         }
 
     } catch (paymentError: any) {
-        console.error("PIX Payment Error (handlePayWithPix catch block):", paymentError);
+        console.error(`[CheckoutPage][${clientTraceId}] Erro no bloco catch de handlePayWithPix:`, paymentError);
         setError(paymentError.message || "Ocorreu um erro desconhecido ao gerar o PIX. Tente novamente.");
     } finally {
       setIsSubmitting(false); 
@@ -755,17 +757,19 @@ export const CheckoutPage: React.FC = () => {
     }, POLLING_TIMEOUT_DURATION);
 
     pollingIntervalRef.current = window.setInterval(async () => {
+      const clientTraceId = uuidv4();
       try {
-        console.log(`Polling status for transactionId: ${transactionId}`);
+        console.log(`[CheckoutPage][${clientTraceId}] Polling status for transactionId: ${transactionId}`);
         const { data: statusFunctionResponse, error: functionError } = await supabase.functions.invoke<PushInPayTransactionStatusResponse>('verificar-status-pix', {
+            headers: { 'X-Client-Trace-Id': clientTraceId },
             body: { transactionId, productOwnerUserId: productOwnerId }
         });
 
-        console.log("Polling response from 'verificar-status-pix':", statusFunctionResponse);
-        console.error("Polling error from 'verificar-status-pix' (if any):", functionError);
+        console.log(`[CheckoutPage][${clientTraceId}] Resposta do polling da Edge Function 'verificar-status-pix':`, statusFunctionResponse);
+        if(functionError) console.error(`[CheckoutPage][${clientTraceId}] Erro do polling da Edge Function 'verificar-status-pix':`, functionError);
 
         if (functionError) {
-            console.error("Erro ao verificar status do PIX (polling):", functionError.message);
+            console.error(`[CheckoutPage][${clientTraceId}] Erro ao verificar status do PIX (polling):`, functionError.message);
             setError(functionError.message || "Falha ao verificar status do PIX.");
             if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
             if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
@@ -775,8 +779,8 @@ export const CheckoutPage: React.FC = () => {
         }
 
         if (statusFunctionResponse && statusFunctionResponse.success && statusFunctionResponse.data) {
-            const currentApiStatus = statusFunctionResponse.data.status; // This is string
-            const statusForUi = mapApiStatusToUiStatus(currentApiStatus); // This is PaymentStatus
+            const currentApiStatus = statusFunctionResponse.data.status; 
+            const statusForUi = mapApiStatusToUiStatus(currentApiStatus); 
             setPaymentStatus(statusForUi);
 
             if (statusForUi === PaymentStatus.PAID) {
@@ -785,7 +789,7 @@ export const CheckoutPage: React.FC = () => {
                 setIsPollingPayment(false);
 
                 if (!product || !platformSettings || currentProductsForSale.length === 0 || finalPrice === null || originalPriceBeforeDiscount === null) {
-                    console.error("Product, PlatformSettings, finalPrice, originalPriceBeforeDiscount, or currentProductsForSale not available when trying to finalize sale.");
+                    console.error(`[CheckoutPage][${clientTraceId}] Dados ausentes para finalizar venda: product, platformSettings, finalPrice, originalPriceBeforeDiscount ou currentProductsForSale.`);
                     setError("Erro ao finalizar a venda: dados do produto, configurações da plataforma, preços ou itens da venda ausentes.");
                     return;
                 }
@@ -806,6 +810,7 @@ export const CheckoutPage: React.FC = () => {
                 };
                 
                 const createdSale = await salesService.createSale(saleRecordForCreation, platformSettings, null); 
+                console.log(`[CheckoutPage][${clientTraceId}] Venda criada no banco de dados:`, createdSale.id);
                 
                 if(appSettings?.apiTokens?.utmifyEnabled && appSettings.apiTokens.utmify){
                     const utmifyProducts = createdSale.products.map(p => ({
@@ -822,10 +827,12 @@ export const CheckoutPage: React.FC = () => {
                         originalAmountBeforeDiscountInCents: createdSale.originalAmountBeforeDiscountInCents,
                     };
                     await utmifyService.sendOrderData(utmifyPayload, appSettings.apiTokens.utmify);
+                    console.log(`[CheckoutPage][${clientTraceId}] Dados da venda enviados para UTMify.`);
                 }
                 
                 if (abandonedCartId) {
                     await abandonedCartService.updateAbandonedCartStatus(abandonedCartId, AbandonedCartStatus.RECOVERED, null);
+                    console.log(`[CheckoutPage][${clientTraceId}] Carrinho abandonado ${abandonedCartId} atualizado para RECOVERED.`);
                 }
                 localStorage.removeItem(LOCALSTORAGE_CHECKOUT_KEY);
                 navigate(`/thank-you/${transactionId}?origProdId=${product.id}`);
@@ -839,10 +846,10 @@ export const CheckoutPage: React.FC = () => {
                 if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
                 setIsPollingPayment(false);
                 setError(`O pagamento PIX ${statusForUi === PaymentStatus.EXPIRED ? 'expirou' : 'falhou/foi cancelado'}. Por favor, tente novamente.`);
+                console.warn(`[CheckoutPage][${clientTraceId}] Pagamento PIX ${statusForUi}. Polling interrompido.`);
             }
-            // Se for WAITING_PAYMENT, o polling continua
         } else {
-             console.warn("Polling: Resposta da função 'verificar-status-pix' não foi bem-sucedida ou não continha dados.");
+             console.warn(`[CheckoutPage][${clientTraceId}] Polling: Resposta da função 'verificar-status-pix' não foi bem-sucedida ou não continha dados.`);
              setError(statusFunctionResponse?.message || "Resposta inválida ao verificar status do PIX.");
              if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
              if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);
@@ -850,7 +857,7 @@ export const CheckoutPage: React.FC = () => {
              setPaymentStatus(PaymentStatus.FAILED);
         }
       } catch (pollError: any) {
-        console.error("Erro durante o polling do status do PIX:", pollError);
+        console.error(`[CheckoutPage][${clientTraceId}] Erro durante o polling do status do PIX:`, pollError);
         setError(pollError.message || "Erro ao verificar status do pagamento. Tente novamente.");
         if (pollingIntervalRef.current) window.clearInterval(pollingIntervalRef.current);
         if (pollingTimeoutRef.current) window.clearTimeout(pollingTimeoutRef.current);

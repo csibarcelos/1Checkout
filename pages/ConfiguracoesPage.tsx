@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/ui/Card';
 import { Input, Textarea } from '../components/ui/Input';
@@ -12,7 +13,7 @@ const initialAppSettings: AppSettings = {
   checkoutIdentity: {
     logoUrl: '',
     faviconUrl: '',
-    brandColor: COLOR_PALETTE_OPTIONS[0].value,
+    brandColor: '#0D9488', // Alterado para a nova cor padrão
   },
   customDomain: '',
   smtpSettings: {
@@ -194,7 +195,7 @@ export const ConfiguracoesPage: React.FC = () => {
               <Input
                 name="customBrandColor"
                 type="color"
-                value={settings.checkoutIdentity?.brandColor || '#000000'}
+                value={settings.checkoutIdentity?.brandColor || '#0D9488'}
                 onChange={(e) => handleInputChange('checkoutIdentity', 'brandColor', e.target.value)}
                 className="mt-1 h-10 w-full"
                 disabled={isSaving}

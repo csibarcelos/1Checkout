@@ -20,7 +20,7 @@ export interface Database {
           is_super_admin: boolean | null
           is_active: boolean | null
           created_at: string | null
-          email: string | null
+          // email: string | null // REMOVIDO - Email vem de auth.users
         }
         Insert: {
           id: string
@@ -28,7 +28,7 @@ export interface Database {
           is_super_admin?: boolean | null
           is_active?: boolean | null
           created_at?: string | null
-          email?: string | null
+          // email?: string | null // REMOVIDO
         }
         Update: {
           id?: string
@@ -36,7 +36,7 @@ export interface Database {
           is_super_admin?: boolean | null
           is_active?: boolean | null
           created_at?: string | null
-          email?: string | null
+          // email?: string | null // REMOVIDO
         }
         Relationships: [
           {
@@ -393,6 +393,49 @@ export interface Database {
             foreignKeyName: "abandoned_carts_product_id_fkey"
             columns: ["product_id"]
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      audit_log_entries: { // Nova tabela
+        Row: {
+          id: string
+          timestamp: string 
+          actor_user_id: string
+          actor_email: string 
+          action_type: string 
+          target_entity_type: string | null
+          target_entity_id: string | null
+          description: string
+          details: Json | null 
+        }
+        Insert: {
+          id?: string
+          timestamp?: string 
+          actor_user_id: string
+          actor_email: string
+          action_type: string
+          target_entity_type?: string | null
+          target_entity_id?: string | null
+          description: string
+          details?: Json | null
+        }
+        Update: {
+          id?: string
+          timestamp?: string
+          actor_user_id?: string
+          actor_email?: string
+          action_type?: string
+          target_entity_type?: string | null
+          target_entity_id?: string | null
+          description?: string
+          details?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_entries_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]

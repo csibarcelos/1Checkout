@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router"; // Alterado de react-router-dom
 import { Product } from '../types';
 import { productService } from '../services/productService';
 import { Button } from '../components/ui/Button';
@@ -38,11 +37,8 @@ const ProductsPage: React.FC = () => {
 
   const fetchProducts = useCallback(async () => {
     if (!accessToken) {
-        // Se o token não estiver disponível, não faz sentido tentar carregar
-        // produtos que dependem de autenticação.
-        // Pode ser que o AuthContext ainda esteja carregando o token.
-        setIsLoading(false); // Parar o loading se não houver token
-        setProducts([]); // Limpar produtos
+        setIsLoading(false); 
+        setProducts([]); 
         return;
     }
     setIsLoading(true);
@@ -59,8 +55,6 @@ const ProductsPage: React.FC = () => {
   }, [accessToken]); 
 
   useEffect(() => {
-    // O accessToken pode ser null inicialmente enquanto o AuthContext carrega.
-    // A useCallback `fetchProducts` já tem uma guarda para accessToken null.
     fetchProducts();
   }, [fetchProducts]);
 
@@ -85,7 +79,7 @@ const ProductsPage: React.FC = () => {
       setError(`Falha ao deletar produto ${productToDelete.name}.`);
       console.error(err);
     } finally {
-      setIsLoading(false); // Certifique-se de resetar o loading mesmo em caso de erro
+      setIsLoading(false); 
     }
   };
   
@@ -96,7 +90,6 @@ const ProductsPage: React.FC = () => {
       const clonedProduct = await productService.cloneProduct(productId, accessToken); 
       if (clonedProduct) {
         fetchProducts(); 
-        // Opcional: rolar para o novo produto ou destacar
       } else {
         setError('Falha ao clonar produto. Nenhum produto retornado.');
       }
@@ -113,7 +106,7 @@ const ProductsPage: React.FC = () => {
         alert('Slug do produto não encontrado para copiar o link.');
         return;
     }
-    const checkoutUrl = `${window.location.origin}${window.location.pathname}#/checkout/${productSlug}`;
+    const checkoutUrl = `${window.location.origin}${window.location.pathname}#/checkout/${productSlug}`; // Mantém # para compatibilidade com HashRouter ou configuração de servidor simples
     navigator.clipboard.writeText(checkoutUrl)
       .then(() => {
         setCopiedLinkProductId(productSlug); 

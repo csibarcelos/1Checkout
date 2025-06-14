@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router"; // Alterado de react-router-dom
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -150,8 +149,6 @@ export const ThankYouPage: React.FC = () => {
 
       if (pixFunctionResponse && pixFunctionResponse.success && pixFunctionResponse.data) {
         setUpsellPixData(pixFunctionResponse.data);
-        // Nota: A confirmação de pagamento do upsell e atualização do pedido principal
-        // precisariam de lógica adicional (polling aqui ou webhook no backend).
       } else {
         throw new Error(pixFunctionResponse?.message || "A resposta da função não continha os dados do PIX para o upsell.");
       }

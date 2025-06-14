@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Link } from "react-router-dom";
+import { Link } from "react-router"; // Alterado de react-router-dom
 import { Button } from '../components/ui/Button';
 import { AppLogoIcon, CheckCircleIcon } from '../constants.tsx'; 
 

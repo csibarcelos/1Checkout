@@ -2,7 +2,7 @@
 // User Authentication
 export interface User {
   id: string;
-  email: string;
+  email: string; // Made non-optional
   name?: string;
   isSuperAdmin?: boolean;
   isActive?: boolean; // Adicionado para status da conta

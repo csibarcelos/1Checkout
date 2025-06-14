@@ -20,7 +20,8 @@ import {
   InformationCircleIcon as HeroIconsInformationCircleIcon,
   PencilIcon as HeroIconsPencilIcon,
   TagIcon as HeroIconsTagIcon,
-  Bars3Icon
+  Bars3Icon,
+  LockClosedIcon as HeroIconsLockClosedIcon 
 } from '@heroicons/react/24/outline';
 
 // Add explicit types to re-exported const icon components
@@ -155,6 +156,49 @@ export const ListUnorderedIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props
   );
 };
 
+export const ParagraphIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => ( // Used as a generic "Heading" icon too
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+  </svg>
+);
+
+export const AlignLeftIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h10.5M3.75 17.25h16.5" />
+  </svg>
+);
+
+export const AlignCenterIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M6.75 12h10.5M3.75 17.25h16.5" />
+  </svg>
+);
+
+export const AlignRightIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M9.75 12h10.5M3.75 17.25h16.5" />
+  </svg>
+);
+
+export const AlignJustifyIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+  </svg>
+);
+
+export const UnlinkIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244M10.445 10.445L13.555 13.555M8.25 3.007L3.007 8.25m5.243 5.243l-5.243 5.243" />
+  </svg>
+);
+
+export const ClearFormatIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => ( // Eraser icon
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+  </svg>
+);
+
+// Re-export HeroIcons with specific React.FC type
 export const ChartPieIcon = HeroIconsChartPieIcon;
 export const CurrencyDollarIcon = HeroIconsCurrencyDollarIcon;
 export const UserGroupIcon = HeroIconsUserGroupIcon;
@@ -168,6 +212,7 @@ export const InformationCircleIcon = HeroIconsInformationCircleIcon;
 export const PencilIcon = HeroIconsPencilIcon;
 export const TagIcon = HeroIconsTagIcon;
 export const Bars3IconHero = Bars3Icon;
+export const LockClosedIcon = HeroIconsLockClosedIcon; 
 
 /**
  * Renders the application logo.
@@ -234,18 +279,16 @@ export const PLATFORM_NAME = "Pushin Pay";
 export const DEFAULT_CURRENCY = "BRL";
 
 export const COLOR_PALETTE_OPTIONS = [
-  { name: 'Amarelo (Padrão)', value: '#FDE047' },
-  { name: 'Verde (Secundário)', value: '#22C55E' },
-  { name: 'Azul Escuro', value: '#2563EB' },
-  { name: 'Roxo', value: '#7C3AED' },
-  { name: 'Rosa', value: '#DB2777' },
-  { name: 'Vermelho', value: '#DC2626' },
-  { name: 'Laranja', value: '#F97316' },
-  { name: 'Verde Água', value: '#0D9488' },
-  { name: 'Índigo', value: '#4F46E5' },
-  { name: 'Cinza Escuro', value: '#374151' },
-  { name: 'Preto', value: '#000000' },
-  { name: 'Branco', value: '#FFFFFF' },
+  { name: 'Verde Padrão', value: '#0D9488' },
+  { name: 'Laranja Shopee', value: '#EE4D2D' },
+  { name: 'Amarelo M. Livre', value: '#FFF159' },
+  { name: 'Laranja Amazon', value: '#FF9900' },
+  { name: 'Vermelho YouTube', value: '#FF0000' },
+  { name: 'Verde WhatsApp', value: '#25D366' },
+  { name: 'Azul Facebook', value: '#1877F2' },
+  { name: 'Azul Clássico', value: '#007BFF' },
+  { name: 'Roxo Twitch', value: '#9146FF' },
+  { name: 'Cinza Grafite', value: '#343A40' },
 ];
 
 interface PhoneCountryCode {

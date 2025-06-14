@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router"; // Alterado de react-router-dom
 import { Product, ProductCheckoutCustomization, OrderBumpOffer, UpsellOffer, Coupon } from '../types';
 import { productService } from '../services/productService';
 import { Button, ToggleSwitch } from '../components/ui/Button';
@@ -12,10 +11,6 @@ import { COLOR_PALETTE_OPTIONS, TrashIcon, PlusIcon } from '../constants.tsx';
 import { useAuth } from '../contexts/AuthContext';
 import { MiniEditor } from '../components/shared/MiniEditor'; 
 import { CouponFormModal } from '../components/shared/CouponFormModal'; 
-
-// MiniEditor Component (REMOVED - NOW IMPORTED)
-// CouponFormModal Component (REMOVED - NOW IMPORTED)
-
 
 export const ProductEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +24,7 @@ export const ProductEditPage: React.FC = () => {
   const [imageUrl, setImageUrl] = useState(''); 
   const [deliveryUrl, setDeliveryUrl] = useState('');
   const [checkoutCustomization, setCheckoutCustomization] = useState<ProductCheckoutCustomization>({
-     primaryColor: COLOR_PALETTE_OPTIONS[0].value, // Ensure primaryColor has a default
+     primaryColor: '#0D9488', 
      guaranteeBadges: [],
      salesCopy: '',
      countdownTimer: { enabled: false, durationMinutes: 15, messageBefore: '', messageAfter: '', backgroundColor: '#EF4444', textColor: '#FFFFFF' }
@@ -40,9 +35,9 @@ export const ProductEditPage: React.FC = () => {
   const [upsell, setUpsell] = useState<UpsellOffer | undefined>(undefined);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
 
-  const [isLoading, setIsLoading] = useState(true); // Renamed original isLoading to this
-  const [isFetchingRelatedData, setIsFetchingRelatedData] = useState(true); // Used for offers dropdown
-  const [isSaving, setIsSaving] = useState(false); // Specific loading state for save button
+  const [isLoading, setIsLoading] = useState(true); 
+  const [isFetchingRelatedData, setIsFetchingRelatedData] = useState(true); 
+  const [isSaving, setIsSaving] = useState(false); 
   const [error, setError] = useState<string | null>(null);
 
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
@@ -62,7 +57,7 @@ export const ProductEditPage: React.FC = () => {
     try {
       const [fetchedProduct, allUserProducts] = await Promise.all([
         productService.getProductById(id, accessToken),
-        productService.getProducts(accessToken) // Fetch all products for offers
+        productService.getProducts(accessToken) 
       ]);
 
       if (fetchedProduct) {
@@ -72,8 +67,8 @@ export const ProductEditPage: React.FC = () => {
         setPrice((fetchedProduct.priceInCents / 100).toFixed(2).replace('.', ','));
         setImageUrl(fetchedProduct.imageUrl || ''); 
         setDeliveryUrl(fetchedProduct.deliveryUrl || '');
-        setCheckoutCustomization({ // Ensure countdownTimer exists with defaults
-            ...(fetchedProduct.checkoutCustomization || { primaryColor: COLOR_PALETTE_OPTIONS[0].value }), // Default primaryColor if customization is null
+        setCheckoutCustomization({ 
+            ...(fetchedProduct.checkoutCustomization || { primaryColor: '#0D9488' }), 
             countdownTimer: fetchedProduct.checkoutCustomization?.countdownTimer || {
                 enabled: false, durationMinutes: 15, messageBefore: '', messageAfter: '', backgroundColor: '#EF4444', textColor: '#FFFFFF'
             }
@@ -81,7 +76,6 @@ export const ProductEditPage: React.FC = () => {
         setOrderBump(fetchedProduct.orderBump);
         setUpsell(fetchedProduct.upsell);
         setCoupons(fetchedProduct.coupons || []);
-        // Filter out the current product from the list of products available for bump/upsell
         setUserProducts(allUserProducts.filter((p: Product) => p.id !== id));
       } else {
         setError('Produto não encontrado.');
@@ -140,7 +134,7 @@ export const ProductEditPage: React.FC = () => {
     const offerData = {
       productId: selectedProductOffer.id, name: selectedProductOffer.name,
       description: selectedProductOffer.description.substring(0, 100) + (selectedProductOffer.description.length > 100 ? '...' : ''),
-      customPriceInCents: selectedProductOffer.priceInCents, // Default to product's original price
+      customPriceInCents: selectedProductOffer.priceInCents, 
       imageUrl: selectedProductOffer.imageUrl || selectedProductOffer.checkoutCustomization?.logoUrl || '',
     };
     if (type === 'bump') setOrderBump(offerData); else setUpsell(offerData);
@@ -169,12 +163,12 @@ export const ProductEditPage: React.FC = () => {
     const priceInCentsNum = Math.round(parseFloat(price.replace(',', '.')) * 100);
     if (isNaN(priceInCentsNum) || priceInCentsNum <= 0) { setError('Por favor, insira um preço válido.'); return; }
 
-    setIsSaving(true); // Use isSaving for the submit button
+    setIsSaving(true); 
     try {
       const updatedProductData: Partial<Omit<Product, 'id' | 'platformUserId' | 'slug'>> = {
         name: productName, description, priceInCents: priceInCentsNum,
-        imageUrl: imageUrl.trim(), // Envia string vazia, serviço converterá para null
-        deliveryUrl: deliveryUrl.trim(), // Envia string vazia, serviço converterá para null
+        imageUrl: imageUrl.trim(), 
+        deliveryUrl: deliveryUrl.trim(), 
         checkoutCustomization,
         orderBump: orderBump?.productId ? orderBump : undefined,
         upsell: upsell?.productId ? upsell : undefined,
@@ -186,7 +180,7 @@ export const ProductEditPage: React.FC = () => {
       setError(err.message || 'Falha ao atualizar produto. Tente novamente.');
       console.error(err);
     } finally {
-      setIsSaving(false); // Reset isSaving
+      setIsSaving(false); 
     }
   };
 
@@ -284,7 +278,7 @@ export const ProductEditPage: React.FC = () => {
                       />
                     ))}
                   </div>
-                  <Input name="customColor" type="color" value={checkoutCustomization.primaryColor || COLOR_PALETTE_OPTIONS[0].value} onChange={(e) => handleCustomizationChange('primaryColor', e.target.value)} className="mt-2 h-10"/>
+                  <Input name="customColor" type="color" value={checkoutCustomization.primaryColor || '#0D9488'} onChange={(e) => handleCustomizationChange('primaryColor', e.target.value)} className="mt-2 h-10"/>
                 </div>
                 <Input label="URL do Logo Pequeno (Checkout)" name="logoUrl" value={checkoutCustomization.logoUrl || ''} onChange={(e) => handleCustomizationChange('logoUrl', e.target.value)} placeholder="https://exemplo.com/logo.png"/>
                 <Input label="URL do Vídeo (YouTube Embed)" name="videoUrl" value={checkoutCustomization.videoUrl || ''} onChange={(e) => handleCustomizationChange('videoUrl', e.target.value)} placeholder="https://youtube.com/embed/..."/>

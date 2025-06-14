@@ -25,22 +25,21 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
         <Transition.Child
-          as="div" // Alterado de Fragment para div
-          className="fixed inset-0 bg-black/70 transition-opacity" // Classes do overlay movidas para cá
+          as={Fragment}
           enter="ease-out duration-300"
           enterFrom="opacity-0"
           enterTo="opacity-100"
           leave="ease-in duration-200"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
-        />
-        {/* O div filho original foi removido pois o Transition.Child agora É o overlay */}
+        >
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" />
+        </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+          <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <Transition.Child
-              as="div" 
-              className="flex items-center justify-center min-h-full w-full p-4 text-center sm:p-0" 
+              as={Fragment}
               enter="ease-out duration-300"
               enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               enterTo="opacity-100 translate-y-0 sm:scale-100"
@@ -49,25 +48,25 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
               <Dialog.Panel 
-                className={`relative transform overflow-hidden rounded-lg bg-neutral-800 text-left shadow-xl transition-all sm:my-8 sm:w-full ${sizeClasses[size]}`}
+                className={`relative transform overflow-hidden rounded-2xl bg-bg-surface border border-border-subtle text-left shadow-2xl transition-all sm:my-8 sm:w-full ${sizeClasses[size]}`}
               >
-                <div className="bg-neutral-700/60 px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-neutral-600 flex justify-between items-center">
+                <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center">
                   {title && (
-                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-neutral-100">
+                    <Dialog.Title as="h3" className="text-xl font-semibold leading-7 text-accent-gold">
                       {title}
                     </Dialog.Title>
                   )}
                   {!title && <div className="flex-grow"></div>} 
                   <button
                     type="button"
-                    className={`rounded-md p-1 text-neutral-400 hover:text-neutral-100 hover:bg-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-neutral-700 ${title ? 'ml-auto' : ''}`}
+                    className="rounded-md p-1.5 text-text-muted hover:text-text-strong hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-accent-blue-neon focus:ring-offset-2 focus:ring-offset-bg-surface transition-colors duration-150"
                     onClick={onClose}
                     aria-label="Fechar modal"
                   >
                     <XMarkIcon className="h-6 w-6" />
                   </button>
                 </div>
-                <div className="bg-neutral-800 px-4 pt-5 pb-4 sm:p-6 text-neutral-300">
+                <div className="p-6 sm:p-8 text-text-default">
                   {children}
                 </div>
               </Dialog.Panel>

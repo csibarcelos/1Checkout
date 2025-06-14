@@ -3,17 +3,17 @@ import React from 'react';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
-  color?: string; // Tailwind color class e.g. text-primary
+  color?: string; 
   className?: string;
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 'md',
-  color = 'text-primary',
+  color = 'text-accent-blue-neon', // Alterado para a cor de destaque azul neon
   className = '',
 }) => {
   const sizeClasses = {
-    sm: 'h-6 w-6',
+    sm: 'h-5 w-5', // Ajustado para tamanhos mais comuns
     md: 'h-8 w-8',
     lg: 'h-12 w-12',
   };
